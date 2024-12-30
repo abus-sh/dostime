@@ -9,7 +9,20 @@ use core::fmt::Display;
 /// the day, the 4 middle bits are the month, and the 7 highest bits are the year offest from 1980.
 /// 
 /// ```
-/// let date = DOSDate::try_from(0x4A86).unwrap();
+/// use dostime::dosdate;
+/// 
+/// let date1 = dosdate::DOSDate::new(2017, 4, 6).unwrap();
+/// let date2 = dosdate::DOSDate::try_from(0x4A86).unwrap();
+/// let date3 = dosdate::DOSDate::try_from([0x86, 0x4A]).unwrap();
+/// 
+/// assert_eq!(date1, date2);
+/// assert_eq!(date1, date3);
+/// 
+/// let int: u16 = date1.into();
+/// assert_eq!(int, 0x4A86);
+/// 
+/// let bytes: [u8; 2] = date2.into();
+/// assert_eq!(bytes, [0x86, 0x4A]);
 /// ```
 /// 
 /// For example, `0x4A86` (big-endian) is `0b0100101010000110`, which corresponds to 2017-04-06. See
@@ -33,28 +46,82 @@ pub struct DOSDate {
     day: u8,
 }
 
+/// A list of possible errors that could happen when constructing a date.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum DateError {
+    /// The year is before 1980 or after 2107.
+    InvalidYear,
+    /// The month is less than 1 (January) or greater than 12 (December).
+    InvalidMonth,
+    /// The day is 0, greater than 31, or could not exist in the current month.
+    InvalidDay,
+}
+
 impl DOSDate {
-    fn is_valid(&self) -> bool {
+    /// Attempts to create a new instance of a `DOSDate`. If the year, month, or day is invalid,
+    /// then the creation fails and an error is returned.
+    /// 
+    /// A year is invalid if it is before 1980 or after 2107. DOS dates can't represent any time
+    /// before or after that year. A month is invalid if it is 0 or greater than 12 since the months
+    /// are represented by 1 (January) to 12 (December). A day is invalid if it is 0, greater than
+    /// 31, or it could not exist in the given month/year (ex. 4/31/XXXX is invalid, 2/29/2003 is
+    /// invalid).
+    /// 
+    /// ```
+    /// use dostime::dosdate;
+    /// 
+    /// // Construct valid dates.
+    /// let date1 = dosdate::DOSDate::new(1980, 1, 1).unwrap();
+    /// let date2 = dosdate::DOSDate::new(2000, 3, 4).unwrap();
+    /// 
+    /// // Invalid dates can't be constructed.
+    /// let bad_year = dosdate::DOSDate::new(1979, 12, 1).expect_err("");
+    /// assert_eq!(bad_year, dosdate::DateError::InvalidYear);
+    /// 
+    /// let bad_month = dosdate::DOSDate::new(2000, 13, 1).expect_err("");
+    /// assert_eq!(bad_month, dosdate::DateError::InvalidMonth);
+    /// 
+    /// let bad_day = dosdate::DOSDate::new(2000, 11, 31).expect_err("");
+    /// assert_eq!(bad_day, dosdate::DateError::InvalidDay);
+    /// ```
+    pub fn new(year: u16, month: u8, day: u8) -> Result<Self, DateError> {
+        let date = Self {
+            year,
+            month,
+            day,
+        };
+
+        if let Err(err) = date.validate() {
+            return Err(err);
+        }
+
+        Ok(date)
+    }
+
+    /// Determines if the date is actually a real date that could be represented by a DOS date. If
+    /// the date is invalid, then a `DateError` is returned.
+    fn validate(&self) -> Result<(), DateError> {
         // Dates before 1980 can't be represented as an unsigned int, must be invalid
-        if self.year < 1980 {
-            return false;
+        // Dates after 2107 can't be represented in the amount of space available, must be invalid
+        if self.year < 1980 || self.year > 2107 {
+            return Err(DateError::InvalidYear);
         }
 
         // Day 0 is invalid
         if self.day == 0 {
-            return false;
+            return Err(DateError::InvalidDay);
         }
 
         // Handle each month seperately
         match self.month {
             1 | 3 | 5 | 7 | 8 | 10 | 12 => {
                 if self.day > 31 {
-                    return false;
+                    return Err(DateError::InvalidDay);
                 }
             },
             4 | 6 | 9 | 11 => {
                 if self.day > 30 {
-                    return false;
+                    return Err(DateError::InvalidDay);
                 }
             },
             2 => {
@@ -73,21 +140,21 @@ impl DOSDate {
                     }
                 }
                 if leap_year && self.day > 29 {
-                    return false;
+                    return Err(DateError::InvalidDay);
                 }
                 if !leap_year && self.day > 28 {
-                    return false;
+                    return Err(DateError::InvalidDay);
                 }
             },
-            _ => return false
+            _ => return Err(DateError::InvalidMonth)
         }
 
-        true
+        Ok(())
     }
 }
 
 impl TryFrom<u16> for DOSDate {
-    type Error = ();
+    type Error = DateError;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         let year = ((value & 0b1111111000000000) >> 9) + 1980;
@@ -100,8 +167,8 @@ impl TryFrom<u16> for DOSDate {
             day,
         };
 
-        if !date.is_valid() {
-            return Err(());
+        if let Err(err) = date.validate() {
+            return Err(err)
         }
 
         Ok(date)
@@ -122,7 +189,7 @@ impl Into<u16> for DOSDate {
 }
 
 impl TryFrom<[u8; 2]> for DOSDate {
-    type Error = ();
+    type Error = DateError;
 
     fn try_from(value: [u8; 2]) -> Result<Self, Self::Error> {
         DOSDate::try_from(u16::from_le_bytes(value))
@@ -157,91 +224,79 @@ impl Display for DOSDate {
 mod tests {
     use super::*;
 
-    impl DOSDate {
-        pub fn debug_new(year: u16, month: u8, day: u8) -> Self {
-            Self {
-                year,
-                month,
-                day,
-            }
-        }
-    }
-
     #[test]
-    fn test_is_valid() {
+    fn test_new() {
         // Test detecting if a date is valid
 
         // Test valid dates
         // 1980-01-01 - epoch
-        assert!(DOSDate {
+        let date = DOSDate::new(1980, 1, 1).unwrap();
+        assert_eq!(date, DOSDate {
             year: 1980,
             month: 1,
             day: 1,
-        }.is_valid());
+        });
 
         // 2017-04-06
-        assert!(DOSDate {
+        let date = DOSDate::new(2017, 4, 6).unwrap();
+        assert_eq!(date, DOSDate {
             year: 2017,
             month: 4,
             day: 6,
-        }.is_valid());
+        });
 
         // 2107-12-31 - last possible date
-        assert!(DOSDate {
+        let date = DOSDate::new(2107, 12, 31).unwrap();
+        assert_eq!(date, DOSDate {
             year: 2107,
             month: 12,
             day: 31,
-        }.is_valid());
+        });
 
         // 2016-02-29 - leap year
-        assert!(DOSDate {
+        let date = DOSDate::new(2016, 2, 29).unwrap();
+        assert_eq!(date, DOSDate {
             year: 2016,
             month: 2,
             day: 29,
-        }.is_valid());
+        });
 
         // 2000-02-29 - leap year, divisible by 400
-        assert!(DOSDate {
+        let date = DOSDate::new(2000, 2, 29).unwrap();
+        assert_eq!(date, DOSDate {
             year: 2000,
             month: 2,
             day: 29,
-        }.is_valid());
+        });
 
         // Test invalid dates
+        // 1979-12-31 - low year
+        let error = DOSDate::new(1979, 12, 31).unwrap_err();
+        assert_eq!(error, DateError::InvalidYear);
+
+        // 2108-01-01 - high year
+        let error = DOSDate::new(2108, 1, 1).unwrap_err();
+        assert_eq!(error, DateError::InvalidYear);
+
         // 1999-00-02 - low month
-        assert!(!DOSDate {
-            year: 1999,
-            month: 0,
-            day: 2,
-        }.is_valid());
+        let error = DOSDate::new(1999, 0, 2).unwrap_err();
+        assert_eq!(error, DateError::InvalidMonth);
 
         // 2001-13-17 - high month
-        assert!(!DOSDate {
-            year: 2001,
-            month: 13,
-            day: 17,
-        }.is_valid());
+        let error = DOSDate::new(2001, 13, 17).unwrap_err();
+        assert_eq!(error, DateError::InvalidMonth);
 
         // 2020-05-00 - low day
-        assert!(!DOSDate {
-            year: 2020,
-            month: 5,
-            day: 0,
-        }.is_valid());
+        let error = DOSDate::new(2020, 5, 0).unwrap_err();
+        assert_eq!(error, DateError::InvalidDay);
 
         // 2003-02-29 - non-leap year
-        assert!(!DOSDate {
-            year: 2003,
-            month: 2,
-            day: 29,
-        }.is_valid());
+        let error = DOSDate::new(2003, 2, 29).unwrap_err();
+        assert_eq!(error, DateError::InvalidDay);
 
         // 2100-02-29 - non-leap year, divisible by 100
-        assert!(!DOSDate {
-            year: 2100,
-            month: 2,
-            day: 29,
-        }.is_valid());
+        let error = DOSDate::new(2100, 2, 29).unwrap_err();
+        assert_eq!(error, DateError::InvalidDay);
     }
 
     #[test]
@@ -286,19 +341,34 @@ mod tests {
 
         // Test invalid dates
         // 1999-00-02 - low month
-        assert!(DOSDate::try_from(0x2602).is_err());
+        assert_eq!(
+            DOSDate::try_from(0x2602).expect_err("Low month allowed."),
+            DateError::InvalidMonth
+        );
 
         // 2001-13-17 - high month
-        assert!(DOSDate::try_from(0x2BB1).is_err());
+        assert_eq!(
+            DOSDate::try_from(0x2BB1).expect_err("High month allowed."),
+            DateError::InvalidMonth
+        );
 
         // 2020-05-00 - low day
-        assert!(DOSDate::try_from(0x28A0).is_err());
+        assert_eq!(
+            DOSDate::try_from(0x28A0).expect_err("Low day allowed."),
+            DateError::InvalidDay
+        );
 
         // 2003-02-29 - non-leap year
-        assert!(DOSDate::try_from(0x2E5D).is_err());
+        assert_eq!(
+            DOSDate::try_from(0x2E5D).expect_err("2/29 allowed on non-leap year."),
+            DateError::InvalidDay
+        );
 
         // 2100-02-29 - non-leap year, divisible by 100
-        assert!(DOSDate::try_from(0xF05D).is_err());
+        assert_eq!(
+            DOSDate::try_from(0xF05D).expect_err("2/29 allowed on non-leap year divisible by 100."),
+            DateError::InvalidDay
+        );
     }
 
     #[test]
@@ -388,19 +458,34 @@ mod tests {
 
         // Test invalid dates
         // 1999-00-02 - low month
-        assert!(DOSDate::try_from([0x02, 0x26]).is_err());
+        assert_eq!(
+            DOSDate::try_from([0x02, 0x26]).expect_err("Low month allowed."),
+            DateError::InvalidMonth
+        );
 
         // 2001-13-17 - high month
-        assert!(DOSDate::try_from([0xB1, 0x2B]).is_err());
+        assert_eq!(
+            DOSDate::try_from([0xB1, 0x2B]).expect_err("High month allowed."),
+            DateError::InvalidMonth
+        );
 
         // 2020-05-00 - low day
-        assert!(DOSDate::try_from([0xA0, 0x28]).is_err());
+        assert_eq!(
+            DOSDate::try_from([0xA0, 0x28]).expect_err("Low day allowed."),
+            DateError::InvalidDay
+        );
 
         // 2003-02-29 - non-leap year
-        assert!(DOSDate::try_from([0x5D, 0x2E]).is_err());
+        assert_eq!(
+            DOSDate::try_from([0x5D, 0x2E]).expect_err("2/29 allowed on non-leap year."),
+            DateError::InvalidDay
+        );
 
         // 2100-02-29 - non-leap year, divisible by 100
-        assert!(DOSDate::try_from([0x5D, 0xF0]).is_err());
+        assert_eq!(
+            DOSDate::try_from([0x5D, 0xF0]).expect_err("2/29 allowed on non-leap year divisible by 100."),
+            DateError::InvalidDay
+        );
     }
 
     #[test]

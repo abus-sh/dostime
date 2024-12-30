@@ -30,28 +30,76 @@ pub struct DOSTime {
     second: u8,
 }
 
+/// A list of possible errors that could happen when constructing a time.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum TimeError {
+    /// The hour is after 23.
+    InvalidHour,
+    /// The minute is after 59.
+    InvalidMinute,
+    /// The second is after 59.
+    InvalidSecond,
+}
+
 impl DOSTime {
-    // Returns true if the DOSTime represents a possible valid time
-    // Ex. 14:03:60 is invalid, 23
-    fn is_valid(&self) -> bool {
+    /// Attempts to create a new instance of a `DOSTime`. If the hour, minute, or second is invalid,
+    /// then the creation fails and an error is returned.
+    /// 
+    /// An hour is invalid if it is 24 or greater. A minute is invalid if it is 60 or greater. A
+    /// second is invalid if it is 60 or greater.
+    /// 
+    /// ```
+    /// use dostime::dostime;
+    /// 
+    /// // Construct valid times.
+    /// let time1 = dostime::DOSTime::new(0, 0, 0).unwrap();
+    /// let time2 = dostime::DOSTime::new(15, 21, 19).unwrap();
+    /// 
+    /// // Invalid times can't be constructed.
+    /// let bad_hour = dostime::DOSTime::new(24, 12, 1).expect_err("");
+    /// assert_eq!(bad_hour, dostime::TimeError::InvalidHour);
+    /// 
+    /// let bad_minute = dostime::DOSTime::new(18, 60, 3).expect_err("");
+    /// assert_eq!(bad_minute, dostime::TimeError::InvalidMinute);
+    /// 
+    /// let bad_second = dostime::DOSTime::new(4, 11, 60).expect_err("");
+    /// assert_eq!(bad_second, dostime::TimeError::InvalidSecond);
+    /// ```
+    pub fn new(hour: u8, minute: u8, second: u8) -> Result<Self, TimeError> {
+        let time = Self {
+            hour,
+            minute,
+            second,
+        };
+
+        if let Err(err) = time.validate() {
+            return Err(err);
+        }
+
+        Ok(time)
+    }
+
+    /// Determines if the time is actually a real time that could be represented by a DOS time. If
+    /// the time is invalid, then a `TimeError` is returned.
+    fn validate(&self) -> Result<(), TimeError> {
         if self.hour >= 24 {
-            return false;
+            return Err(TimeError::InvalidHour);
         }
 
         if self.minute >= 60 {
-            return false;
+            return Err(TimeError::InvalidMinute);
         }
 
         if self.second >= 60 {
-            return false;
+            return Err(TimeError::InvalidSecond);
         }
 
-        return true;
+        return Ok(());
     }
 }
 
 impl TryFrom<u16> for DOSTime {
-    type Error = ();
+    type Error = TimeError;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         // TODO: 7z seems to always report 2 less than what this calculate to. Why?
@@ -65,8 +113,8 @@ impl TryFrom<u16> for DOSTime {
             second,
         };
 
-        if !time.is_valid() {
-            return Err(());
+        if let Err(err) = time.validate() {
+            return Err(err);
         }
 
         Ok(time)
@@ -90,7 +138,7 @@ impl Into<u16> for DOSTime {
 }
 
 impl TryFrom<[u8; 2]> for DOSTime {
-    type Error = ();
+    type Error = TimeError;
 
     fn try_from(value: [u8; 2]) -> Result<Self, Self::Error> {
         DOSTime::try_from(u16::from_le_bytes(value))
@@ -115,63 +163,47 @@ impl Display for DOSTime {
 mod tests {
     use super::*;
 
-    impl DOSTime {
-        pub fn debug_new(hour: u8, minute: u8, second: u8) -> Self {
-            Self {
-                hour,
-                minute,
-                second,
-            }
-        }
-    }
-
     #[test]
-    fn test_is_valid() {
+    fn test_new() {
         // Test detecting if a time is valid
 
         // Test valid times
         // 00:00:00 - midnight
-        assert!(DOSTime {
+        let time = DOSTime::new(0, 0, 0).unwrap();
+        assert_eq!(time, DOSTime {
             hour: 0,
             minute: 0,
             second: 0
-        }.is_valid());
+        });
 
         // 13:24:54
-        assert!(DOSTime {
+        let time = DOSTime::new(13, 24, 54).unwrap();
+        assert_eq!(time, DOSTime {
             hour: 13,
             minute: 24,
             second: 54,
-        }.is_valid());
+        });
 
         // 23:59:58 - last possible time
-        assert!(DOSTime {
+        let time = DOSTime::new(23, 59, 58).unwrap();
+        assert_eq!(time, DOSTime {
             hour: 23,
             minute: 59,
             second: 58
-        }.is_valid());
+        });
 
         // Test invalid times
         // 24:00:00 - high hour
-        assert!(!DOSTime {
-            hour: 24,
-            minute: 0,
-            second: 0
-        }.is_valid());
+        let error = DOSTime::new(24, 0, 0).unwrap_err();
+        assert_eq!(error, TimeError::InvalidHour);
 
         // 00:60:00 - high minute
-        assert!(!DOSTime {
-            hour: 0,
-            minute: 60,
-            second: 0
-        }.is_valid());
+        let error = DOSTime::new(0, 60, 0).unwrap_err();
+        assert_eq!(error, TimeError::InvalidMinute);
 
         // 00:00:60 - high second
-        assert!(!DOSTime {
-            hour: 0,
-            minute: 0,
-            second: 60,
-        }.is_valid());
+        let error = DOSTime::new(0, 0, 60).unwrap_err();
+        assert_eq!(error, TimeError::InvalidSecond);
     }
 
     #[test]
@@ -202,13 +234,22 @@ mod tests {
 
         // Test invalid times
         // 24:00:00 - high hour
-        assert!(DOSTime::try_from(0xC000).is_err());
+        assert_eq!(
+            DOSTime::try_from(0xC000).expect_err("High hour allowed."),
+            TimeError::InvalidHour
+        );
 
         // 00:60:00 - high minute
-        assert!(DOSTime::try_from(0x0780).is_err());
+        assert_eq!(
+            DOSTime::try_from(0x0780).expect_err("High minute allowed."),
+            TimeError::InvalidMinute
+        );
 
         // 00:00:60 - high second
-        assert!(DOSTime::try_from(0x001E).is_err());
+        assert_eq!(
+            DOSTime::try_from(0x001E).expect_err("High second allowed."),
+            TimeError::InvalidSecond
+        );
     }
 
     #[test]
@@ -276,13 +317,22 @@ mod tests {
 
         // Test invalid times
         // 24:00:00 - high hour
-        assert!(DOSTime::try_from([0x00, 0xC0]).is_err());
+        assert_eq!(
+            DOSTime::try_from([0x00, 0xC0]).expect_err("High hour allowed."),
+            TimeError::InvalidHour,
+        );
 
         // 00:60:00 - high minute
-        assert!(DOSTime::try_from([0x80, 0x07]).is_err());
+        assert_eq!(
+            DOSTime::try_from([0x80, 0x07]).expect_err("High minute allowed."),
+            TimeError::InvalidMinute
+        );
 
         // 00:00:60 - high second
-        assert!(DOSTime::try_from([0x1E, 0x00]).is_err());
+        assert_eq!(
+            DOSTime::try_from([0x1E, 0x00]).expect_err("High second allowed."),
+            TimeError::InvalidSecond
+        );
     }
 
     #[test]

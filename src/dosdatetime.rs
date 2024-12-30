@@ -3,7 +3,7 @@
 
 use core::fmt::Display;
 
-use crate::{dosdate::DOSDate, dostime::DOSTime};
+use crate::{dosdate::{DOSDate, DateError}, dostime::{DOSTime, TimeError}};
 
 /// A datetime in MS-Dos format.
 /// 
@@ -26,8 +26,33 @@ pub struct DOSDateTime {
     time: DOSTime,
 }
 
+/// A list of possible errors that could happen when constructing a datetime. Relies on the errors
+/// described by `dosdate::DateError` and `dostime::TimeError`.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum DateTimeError {
+    /// The date was invalid. The exact error is enclosed.
+    DateError(DateError),
+    /// The time was invalid. The exact error is enclosed.
+    TimeError(TimeError),
+}
+
 impl DOSDateTime {
-    /// Construct a new 
+    /// Construct a new datetime from an existing date and time.
+    /// 
+    /// ```
+    /// use ::dostime::dosdatetime;
+    /// use ::dostime::dostime;
+    /// use ::dostime::dosdate;
+    /// 
+    /// let date1 = dosdate::DOSDate::new(2017, 4, 6).unwrap();
+    /// let date2 = dosdate::DOSDate::new(2000, 1, 2).unwrap();
+    /// 
+    /// let time1 = dostime::DOSTime::new(0, 3, 12).unwrap();
+    /// let time2 = dostime::DOSTime::new(15, 21, 19).unwrap();
+    /// 
+    /// let datetime1 = dosdatetime::DOSDateTime::new(date1, time1);
+    /// let datetime2 = dosdatetime::DOSDateTime::new(date2, time2);
+    /// ```
     pub fn new(date: DOSDate, time: DOSTime) -> Self {
         Self {
             date,
@@ -37,14 +62,21 @@ impl DOSDateTime {
 }
 
 impl TryFrom<u32> for DOSDateTime {
-    type Error = ();
+    type Error = DateTimeError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         let date = (value >> 16) as u16;
         let time = (value & 0xFFFF) as u16;
 
-        let date = DOSDate::try_from(date)?;
-        let time = DOSTime::try_from(time)?;
+        let date = match DOSDate::try_from(date) {
+            Err(err) => return Err(DateTimeError::DateError(err)),
+            Ok(date) => date,
+        };
+
+        let time = match DOSTime::try_from(time) {
+            Err(err) => return Err(DateTimeError::TimeError(err)),
+            Ok(time) => time,
+        };
 
         Ok(Self {
             date,
@@ -66,7 +98,7 @@ impl Into<u32> for DOSDateTime {
 }
 
 impl TryFrom<[u8; 4]> for DOSDateTime {
-    type Error = ();
+    type Error = DateTimeError;
 
     fn try_from(value: [u8; 4]) -> Result<Self, Self::Error> {
         DOSDateTime::try_from(u32::from_le_bytes(value))
@@ -107,25 +139,29 @@ mod tests {
         // Test valid datetimes
         // 1980-01-01 00:00:00 - epoch
         assert_eq!(DOSDateTime::try_from(0x0021_0000).unwrap(), DOSDateTime {
-            date: DOSDate::debug_new(1980, 1, 1),
-            time: DOSTime::debug_new(0, 0, 0),
+            date: DOSDate::new(1980, 1, 1).unwrap(),
+            time: DOSTime::new(0, 0, 0).unwrap(),
         });
 
         // 2017-04-06 13:24:54
         assert_eq!(DOSDateTime::try_from(0x4A86_6B1B).unwrap(), DOSDateTime {
-            date: DOSDate::debug_new(2017, 4, 6),
-            time: DOSTime::debug_new(13, 24, 54),
+            date: DOSDate::new(2017, 4, 6).unwrap(),
+            time: DOSTime::new(13, 24, 54).unwrap(),
         });
 
         // 2107-12-31 23:59:58 - last possible datetime
         assert_eq!(DOSDateTime::try_from(0xFF9F_BF7D).unwrap(), DOSDateTime {
-            date: DOSDate::debug_new(2107, 12, 31),
-            time: DOSTime::debug_new(23, 59, 58),
+            date: DOSDate::new(2107, 12, 31).unwrap(),
+            time: DOSTime::new(23, 59, 58).unwrap(),
         });
         
         // Test invalid dates
         // 1999-00-02 00:00:00 - low month
-        assert!(DOSDateTime::try_from(0x2602_0000).is_err());
+        //assert!(DOSDateTime::try_from(0x2602_0000).is_err());
+        assert_eq!(
+            DOSDateTime::try_from(0x2602_0000).expect_err("Low month allowed"),
+            DateTimeError::DateError(DateError::InvalidMonth),
+        );
 
         // 2001-13-17 00:00:00 - high month
         assert!(DOSDateTime::try_from(0x2BB1_0000).is_err());
@@ -157,22 +193,22 @@ mod tests {
         // Test valid datetimes
         // 1980-01-01 00:00:00 - epoch
         let datetime: u32 = DOSDateTime {
-            date: DOSDate::debug_new(1980, 1, 1),
-            time: DOSTime::debug_new(0, 0, 0),
+            date: DOSDate::new(1980, 1, 1).unwrap(),
+            time: DOSTime::new(0, 0, 0).unwrap(),
         }.into();
         assert_eq!(datetime, 0x0021_0000);
 
         // 2017-04-06 13:24:54
         let datetime: u32 = DOSDateTime {
-            date: DOSDate::debug_new(2017, 4, 6),
-            time: DOSTime::debug_new(13, 24, 54),
+            date: DOSDate::new(2017, 4, 6).unwrap(),
+            time: DOSTime::new(13, 24, 54).unwrap(),
         }.into();
         assert_eq!(datetime, 0x4A86_6B1B);
 
         // 2107-12-31 23:59:58 - last possible datetime
         let datetime: u32 = DOSDateTime {
-            date: DOSDate::debug_new(2107, 12, 31),
-            time: DOSTime::debug_new(23, 59, 58),
+            date: DOSDate::new(2107, 12, 31).unwrap(),
+            time: DOSTime::new(23, 59, 58).unwrap(),
         }.into();
         assert_eq!(datetime, 0xFF9F_BF7D);
     }
@@ -184,20 +220,20 @@ mod tests {
         // Test valid datetimes
         // 1980-01-01 00:00:00 - epoch
         assert_eq!(DOSDateTime::try_from([0x00, 0x00, 0x21, 0x00]).unwrap(), DOSDateTime {
-            date: DOSDate::debug_new(1980, 1, 1),
-            time: DOSTime::debug_new(0, 0, 0),
+            date: DOSDate::new(1980, 1, 1).unwrap(),
+            time: DOSTime::new(0, 0, 0).unwrap(),
         });
 
         // 2017-04-06 13:24:54
         assert_eq!(DOSDateTime::try_from([0x1B, 0x6B, 0x86, 0x4A]).unwrap(), DOSDateTime {
-            date: DOSDate::debug_new(2017, 4, 6),
-            time: DOSTime::debug_new(13, 24, 54),
+            date: DOSDate::new(2017, 4, 6).unwrap(),
+            time: DOSTime::new(13, 24, 54).unwrap(),
         });
 
         // 2107-12-31 23:59:58 - last possible datetime
         assert_eq!(DOSDateTime::try_from([0x7D, 0xBF, 0x9F, 0xFF]).unwrap(), DOSDateTime {
-            date: DOSDate::debug_new(2107, 12, 31),
-            time: DOSTime::debug_new(23, 59, 58),
+            date: DOSDate::new(2107, 12, 31).unwrap(),
+            time: DOSTime::new(23, 59, 58).unwrap(),
         });
         
         // Test invalid dates
@@ -234,22 +270,22 @@ mod tests {
         // Test valid datetimes
         // 1980-01-01 00:00:00 - epoch
         let datetime: [u8; 4] = DOSDateTime {
-            date: DOSDate::debug_new(1980, 1, 1),
-            time: DOSTime::debug_new(0, 0, 0),
+            date: DOSDate::new(1980, 1, 1).unwrap(),
+            time: DOSTime::new(0, 0, 0).unwrap(),
         }.into();
         assert_eq!(datetime, [0x00, 0x00, 0x21, 0x00]);
 
         // 2017-04-06 13:24:54
         let datetime: [u8; 4] = DOSDateTime {
-            date: DOSDate::debug_new(2017, 4, 6),
-            time: DOSTime::debug_new(13, 24, 54),
+            date: DOSDate::new(2017, 4, 6).unwrap(),
+            time: DOSTime::new(13, 24, 54).unwrap(),
         }.into();
         assert_eq!(datetime, [0x1B, 0x6B, 0x86, 0x4A]);
 
         // 2107-12-31 23:59:58 - last possible datetime
         let datetime: [u8; 4] = DOSDateTime {
-            date: DOSDate::debug_new(2107, 12, 31),
-            time: DOSTime::debug_new(23, 59, 58),
+            date: DOSDate::new(2107, 12, 31).unwrap(),
+            time: DOSTime::new(23, 59, 58).unwrap(),
         }.into();
         assert_eq!(datetime, [0x7D, 0xBF, 0x9F, 0xFF]);
     }
