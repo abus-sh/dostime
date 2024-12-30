@@ -3,12 +3,12 @@
 
 use core::fmt::Display;
 
-use crate::{dosdate::{DOSDate, DateError}, dostime::{DOSTime, TimeError}};
+use crate::{date::{DOSDate, DateError}, time::{DOSTime, TimeError}};
 
 /// A datetime in MS-Dos format.
 /// 
-/// Datetimes are often stored as little-endian 4 byte values, with the first 2 bytes representing
-/// the time and the second 2 bytes representing the date. For a more complete explanation on time
+/// Datetimes are often stored as little-endian 4-byte values, with the first 2-bytes representing
+/// the time and the second 2-bytes representing the date. For a more complete explanation on time
 /// format, see the documentation for `DOSDate` and `DOSTime`.
 /// 
 /// The functions that convert to and from `u32`s interpret the value as big-endian since that is
@@ -16,9 +16,9 @@ use crate::{dosdate::{DOSDate, DateError}, dostime::{DOSTime, TimeError}};
 /// that convert to and from `[u8; 4]` interpret the values as little-endian since the bytes are
 /// often stored as little-endian values.
 /// 
-/// Not all 4 byte sequences correspond to a valid datetime. This implementation rejects these
+/// Not all 4-byte sequences correspond to a valid datetime. This implementation rejects these
 /// timestamps and disallows their construction (hence the use of `TryFrom` rather than `From`).
-/// However, all possible `DOSDateTime`s can be converted into a valid 4 byte sequence (hence the
+/// However, all possible `DOSDateTime`s can be converted into a valid 4-byte sequence (hence the
 /// use of `Into`).
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct DOSDateTime {

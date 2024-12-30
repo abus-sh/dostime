@@ -5,7 +5,7 @@ use core::fmt::Display;
 
 /// A date in MS-DOS format.
 /// 
-/// MS-DOS dates are typically stored as little-endian 2 byte values. The 5 lowest order bits are
+/// MS-DOS dates are typically stored as little-endian 2-byte values. The 5 lowest order bits are
 /// the day, the 4 middle bits are the month, and the 7 highest bits are the year offest from 1980.
 /// 
 /// ```
@@ -34,10 +34,10 @@ use core::fmt::Display;
 /// the math easier. The functions that convert to and from `[u8; 2]` interpret the value as
 /// little-endian since bytes are usually stored as little-endian values.
 /// 
-/// Not all 2 byte sequences correspond to a valid date. For example, the array `[0xB1, 0x2B]`
+/// Not all 2-byte sequences correspond to a valid date. For example, the array `[0xB1, 0x2B]`
 /// would become the date 2001-13-17, which is clearly invalid. This implementation rejects these
 /// timestamps and disallows their construction (hence the use of `TryFrom` rather than `From`).
-/// However, all possible `DOSDate`s can be converted into a valid 2 byte sequence (hence the use
+/// However, all possible `DOSDate`s can be converted into a valid 2-byte sequence (hence the use
 /// of `Into`).
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct DOSDate {

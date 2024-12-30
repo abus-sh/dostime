@@ -21,15 +21,15 @@
 
 /// This module contains `DOSTime` and its related functionality. It allows for conversion to and
 /// from `DOSTime` and related types.
-pub mod dostime;
-pub use dostime::DOSTime;
+pub mod time;
+pub use time::DOSTime;
 
 /// This module contains `DOSDate` and its related functionality. It allows for conversion to and
 /// from `DOSDate` and related types.
-pub mod dosdate;
-pub use dosdate::DOSDate;
+pub mod date;
+pub use date::DOSDate;
 
 /// This module contains `DOSDateTime` and its related functionality. It allows for conversion to
 /// and from `DOSDateTime` and related types.
-pub mod dosdatetime;
-pub use dosdatetime::DOSDateTime;
+pub mod datetime;
+pub use datetime::DOSDateTime;

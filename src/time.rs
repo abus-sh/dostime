@@ -3,9 +3,9 @@
 
 use core::fmt::Display;
 
-/// A time in MS-DOS format. Timestamps will always have an even number of seconds.
+/// A time in MS-DOS format. Timestamps in the wild will always have an even number of seconds.
 /// 
-/// MS-DOS times are typically stored as little-endian 2 byte values. The 5 lowest-order bits are
+/// MS-DOS times are typically stored as little-endian 2-byte values. The 5 lowest-order bits are
 /// half the seconds (ex. a value of 25 corresponds to 50 seconds). The next 6 bits are the minutes
 /// and the remaining 5 bits are the hours.
 /// 
@@ -18,10 +18,10 @@ use core::fmt::Display;
 /// the math easier. The functions that convert to and from `[u8; 2]` interpret the value as
 /// little-endian since bytes are usually stored as little-endian values.
 /// 
-/// Not all 2 byte sequences correspond to a valid time. For example, the array `[0x00, 0xC0]`
+/// Not all 2-byte sequences correspond to a valid time. For example, the array `[0x00, 0xC0]`
 /// would become the time 24:00:00, which is clearly invalid. This implementation rejects these
 /// timestamps and disallows their construction (hence the use of `TryFrom` rather than `From`).
-/// However, all possible `DOSTime`s can be converted into a valid 2 byte sequence (hence the use
+/// However, all possible `DOSTime`s can be converted into a valid 2-byte sequence (hence the use
 /// of `Into`). 
 #[derive(Debug, PartialEq, Eq, Default, Clone, Copy)]
 pub struct DOSTime {
