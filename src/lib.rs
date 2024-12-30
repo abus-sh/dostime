@@ -17,7 +17,7 @@
 /// In cases where big-endian vs little-endian differences matter, this module contains traits that
 /// can be used to define `Into`, `TryInto`, `From`, and `TryFrom` equivalents that are specifically
 /// little- or big-endian.
-pub mod traits;
+//pub mod traits;
 
 /// This module contains `DOSTime` and its related functionality. It allows for conversion to and
 /// from `DOSTime` and related types.
