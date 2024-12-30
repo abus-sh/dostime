@@ -14,19 +14,22 @@
 
 // TODO: create try_from_le and try_from_be for DOSTime & DOSDate that uses [u8; 2]
 
-/// In cases where big-endian vs little-endian differences matter, this module contains traits that
-/// can be used to define `Into`, `TryInto`, `From`, and `TryFrom` equivalents that are specifically
-/// little- or big-endian.
+// / In cases where big-endian vs little-endian differences matter, this module contains traits that
+// / can be used to define `Into`, `TryInto`, `From`, and `TryFrom` equivalents that are specifically
+// / little- or big-endian.
 //pub mod traits;
 
 /// This module contains `DOSTime` and its related functionality. It allows for conversion to and
 /// from `DOSTime` and related types.
 pub mod dostime;
+pub use dostime::DOSTime;
 
 /// This module contains `DOSDate` and its related functionality. It allows for conversion to and
 /// from `DOSDate` and related types.
 pub mod dosdate;
+pub use dosdate::DOSDate;
 
 /// This module contains `DOSDateTime` and its related functionality. It allows for conversion to
 /// and from `DOSDateTime` and related types.
 pub mod dosdatetime;
+pub use dosdatetime::DOSDateTime;
