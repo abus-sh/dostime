@@ -3,7 +3,7 @@
 
 use core::fmt::Display;
 
-use crate::{date::{DOSDate, DateError}, time::{DOSTime, TimeError}, traits::{FromBE, FromLE, IntoBE, IntoLE, TryFromBE, TryFromLE}};
+use crate::{date::{DOSDate, DateError}, time::{DOSTime, TimeError}, traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE}};
 
 /// A datetime in MS-Dos format.
 /// 
