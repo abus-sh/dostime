@@ -3,6 +3,9 @@
 
 use core::fmt::Display;
 
+#[cfg(feature = "serde-1")]
+use serde_derive::{Deserialize, Serialize};
+
 use crate::traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE, TryIntoBE};
 
 /// A date in MS-DOS format.
@@ -42,6 +45,7 @@ use crate::traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE, TryIntoBE};
 /// However, all possible `DOSDate`s can be converted into a valid 2-byte sequence (hence the use
 /// of `Into`).
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "serde-1", derive(Deserialize, Serialize))]
 pub struct DOSDate {
     year: u16,
     month: u8,

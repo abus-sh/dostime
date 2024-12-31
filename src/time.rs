@@ -3,6 +3,9 @@
 
 use core::fmt::Display;
 
+#[cfg(feature = "serde-1")]
+use serde_derive::{Deserialize, Serialize};
+
 use crate::traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE, TryIntoBE};
 
 /// A time in MS-DOS format. Timestamps in the wild will always have an even number of seconds.
@@ -43,6 +46,7 @@ use crate::traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE, TryIntoBE};
 /// However, all possible `DOSTime`s can be converted into a valid 2-byte sequence (hence the use
 /// of `Into`). 
 #[derive(Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "serde-1", derive(Deserialize, Serialize))]
 pub struct DOSTime {
     hour: u8,
     minute: u8,

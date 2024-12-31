@@ -3,6 +3,9 @@
 
 use core::fmt::Display;
 
+#[cfg(feature = "serde-1")]
+use serde_derive::{Deserialize, Serialize};
+
 use crate::{date::{DOSDate, DateError}, time::{DOSTime, TimeError}, traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE, TryIntoBE}};
 
 /// A datetime in MS-Dos format.
@@ -41,6 +44,7 @@ use crate::{date::{DOSDate, DateError}, time::{DOSTime, TimeError}, traits::{Fro
 /// However, all possible `DOSDateTime`s can be converted into a valid 4-byte sequence (hence the
 /// use of `Into`).
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "serde-1", derive(Deserialize, Serialize))]
 pub struct DOSDateTime {
     date: DOSDate,
     time: DOSTime,

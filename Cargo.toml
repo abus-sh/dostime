@@ -10,7 +10,10 @@ keywords = ["DOS", "date", "time", "datetime"]
 categories = ["date-and-time"]
 
 [dependencies]
+serde = { version = "1.0", optional = true }
+serde_derive = { version = "1.0", optional = true }
 
 [features]
 default = ["std"]
 std = []
+serde-1 = ["serde", "serde_derive"]
