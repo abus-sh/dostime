@@ -3,7 +3,7 @@
 
 use core::fmt::Display;
 
-use crate::traits::{IntoBE, IntoLE, TryFromBE, TryFromLE};
+use crate::traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE};
 
 /// A date in MS-DOS format.
 /// 
@@ -178,16 +178,16 @@ impl TryFrom<u16> for DOSDate {
     }
 }
 
-impl Into<u16> for DOSDate {
-    fn into(self) -> u16 {
+impl From<DOSDate> for u16 {
+    fn from(value: DOSDate) -> Self {
         // Shift year to be last 5 bits of u16
-        let year = (self.year - 1980) << 9;
+        let year = (value.year - 1980) << 9;
 
         // Shift month to be middle 4 bits of u16
-        let month = (self.month as u16) << 5;
+        let month = (value.month as u16) << 5;
         
         // Sum year, month, and day to create result
-        year + month + (self.day as u16)
+        year + month + (value.day as u16)
     }
 }
 
@@ -215,23 +215,23 @@ impl TryFrom<[u8; 2]> for DOSDate {
     }
 }
 
-impl IntoLE<[u8; 2]> for DOSDate {
-    fn into_le(self) -> [u8; 2] {
-        let bytes: u16 = self.into();
+impl FromLE<DOSDate> for [u8; 2] {
+    fn from_le(value: DOSDate) -> Self {
+        let bytes: u16 = value.into();
         bytes.to_le_bytes()
     }
 }
 
-impl IntoBE<[u8; 2]> for DOSDate {
-    fn into_be(self) -> [u8; 2] {
-        let bytes: u16 = self.into();
+impl FromBE<DOSDate> for [u8; 2] {
+    fn from_be(value: DOSDate) -> Self {
+        let bytes: u16 = value.into();
         bytes.to_be_bytes()
     }
 }
 
-impl Into<[u8; 2]> for DOSDate {
-    fn into(self) -> [u8; 2] {
-        self.into_le()
+impl From<DOSDate> for [u8; 2] {
+    fn from(value: DOSDate) -> Self {
+        value.into_le()
     }
 }
 
@@ -254,6 +254,8 @@ impl Display for DOSDate {
 
 #[cfg(test)]
 mod tests {
+    use crate::traits::IntoBE;
+
     use super::*;
 
     #[test]

@@ -3,7 +3,7 @@
 
 use core::fmt::Display;
 
-use crate::{date::{DOSDate, DateError}, time::{DOSTime, TimeError}, traits::{IntoBE, IntoLE, TryFromBE, TryFromLE}};
+use crate::{date::{DOSDate, DateError}, time::{DOSTime, TimeError}, traits::{FromBE, FromLE, IntoBE, IntoLE, TryFromBE, TryFromLE}};
 
 /// A datetime in MS-Dos format.
 /// 
@@ -131,12 +131,12 @@ impl TryFrom<u32> for DOSDateTime {
     }
 }
 
-impl Into<u32> for DOSDateTime {
-    fn into(self) -> u32 {
-        let date: u16 = self.date.into();
+impl From<DOSDateTime> for u32 {
+    fn from(value: DOSDateTime) -> Self {
+        let date: u16 = value.date.into();
         let date = (date as u32) << 16;
 
-        let time: u16 = self.time.into();
+        let time: u16 = value.time.into();
         let time = time as u32;
 
         date + time
@@ -167,23 +167,23 @@ impl TryFrom<[u8; 4]> for DOSDateTime {
     }
 }
 
-impl IntoLE<[u8; 4]> for DOSDateTime {
-    fn into_le(self) -> [u8; 4] {
-        let bytes: u32 = self.into();
+impl FromLE<DOSDateTime> for [u8; 4] {
+    fn from_le(value: DOSDateTime) -> Self {
+        let bytes: u32 = value.into();
         bytes.to_le_bytes()
     }
-}
+} 
 
-impl IntoBE<[u8; 4]> for DOSDateTime {
-    fn into_be(self) -> [u8; 4] {
-        let bytes: u32 = self.into();
+impl FromBE<DOSDateTime> for [u8; 4] {
+    fn from_be(value: DOSDateTime) -> Self {
+        let bytes: u32 = value.into();
         bytes.to_be_bytes()
     }
 }
 
-impl Into<[u8; 4]> for DOSDateTime {
-    fn into(self) -> [u8; 4] {
-        self.into_le()
+impl From<DOSDateTime> for [u8; 4] {
+    fn from(value: DOSDateTime) -> Self {
+        value.into_le()
     }
 }
 

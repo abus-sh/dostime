@@ -3,7 +3,7 @@
 
 use core::fmt::Display;
 
-use crate::traits::{IntoBE, IntoLE, TryFromBE, TryFromLE};
+use crate::traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE};
 
 /// A time in MS-DOS format. Timestamps in the wild will always have an even number of seconds.
 /// 
@@ -141,16 +141,16 @@ impl TryFrom<u16> for DOSTime {
     }
 }
 
-impl Into<u16> for DOSTime {
-    fn into(self) -> u16 {
+impl From<DOSTime> for u16 {
+    fn from(value: DOSTime) -> Self {
         // Shift hour to be last 5 bits of u16
-        let hour = (self.hour as u16) << 11;
+        let hour = (value.hour as u16) << 11;
 
         // Shift minute to be middle 6 bits of u16
-        let minute = (self.minute as u16) << 5;
+        let minute = (value.minute as u16) << 5;
 
         // Halve seconds
-        let second = (self.second as u16) / 2;
+        let second = (value.second as u16) / 2;
 
         // Sum hour, minute, and second to create result
         hour + minute + second
@@ -181,23 +181,23 @@ impl TryFrom<[u8; 2]> for DOSTime {
     }
 }
 
-impl IntoLE<[u8; 2]> for DOSTime {
-    fn into_le(self) -> [u8; 2] {
-        let bytes: u16 = self.into();
+impl FromLE<DOSTime> for [u8; 2] {
+    fn from_le(value: DOSTime) -> Self {
+        let bytes: u16 = value.into();
         bytes.to_le_bytes()
     }
 }
 
-impl IntoBE<[u8; 2]> for DOSTime {
-    fn into_be(self) -> [u8; 2] {
-        let bytes: u16 = self.into();
+impl FromBE<DOSTime> for [u8; 2] {
+    fn from_be(value: DOSTime) -> Self {
+        let bytes: u16 = value.into();
         bytes.to_be_bytes()
     }
 }
 
-impl Into<[u8; 2]> for DOSTime {
-    fn into(self) -> [u8; 2] {
-        self.into_le()
+impl From<DOSTime> for [u8; 2] {
+    fn from(value: DOSTime) -> Self {
+        value.into_le()
     }
 }
 
@@ -210,6 +210,8 @@ impl Display for DOSTime {
 
 #[cfg(test)]
 mod tests {
+    use crate::traits::IntoBE;
+
     use super::*;
 
     #[test]
