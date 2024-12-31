@@ -3,6 +3,8 @@
 
 use core::fmt::Display;
 
+use crate::traits::{IntoBE, IntoLE, TryFromBE, TryFromLE};
+
 /// A time in MS-DOS format. Timestamps in the wild will always have an even number of seconds.
 /// 
 /// MS-DOS times are typically stored as little-endian 2-byte values. The 5 lowest-order bits are
@@ -138,18 +140,47 @@ impl Into<u16> for DOSTime {
     }
 }
 
+impl TryFromLE<[u8; 2]> for DOSTime {
+    type Error = TimeError;
+
+    fn try_from_le(value: [u8; 2]) -> Result<Self, Self::Error> {
+        DOSTime::try_from(u16::from_le_bytes(value))
+    }
+}
+
+impl TryFromBE<[u8; 2]> for DOSTime {
+    type Error = TimeError;
+
+    fn try_from_be(value: [u8; 2]) -> Result<Self, Self::Error> {
+        DOSTime::try_from(u16::from_be_bytes(value))
+    }
+}
+
 impl TryFrom<[u8; 2]> for DOSTime {
     type Error = TimeError;
 
     fn try_from(value: [u8; 2]) -> Result<Self, Self::Error> {
-        DOSTime::try_from(u16::from_le_bytes(value))
+        DOSTime::try_from_le(value)
+    }
+}
+
+impl IntoLE<[u8; 2]> for DOSTime {
+    fn into_le(self) -> [u8; 2] {
+        let bytes: u16 = self.into();
+        bytes.to_le_bytes()
+    }
+}
+
+impl IntoBE<[u8; 2]> for DOSTime {
+    fn into_be(self) -> [u8; 2] {
+        let bytes: u16 = self.into();
+        bytes.to_be_bytes()
     }
 }
 
 impl Into<[u8; 2]> for DOSTime {
     fn into(self) -> [u8; 2] {
-        let bytes: u16 = self.into();
-        bytes.to_le_bytes()
+        self.into_le()
     }
 }
 
@@ -291,6 +322,98 @@ mod tests {
     }
 
     #[test]
+    fn test_time_from_u8arr_le() {
+        // Test converting from a [u8; 2] to a DOSTime
+
+        // Test valid times
+        // 00:00:00 - midnight
+        assert_eq!(DOSTime::try_from_le([0x00, 0x00]).unwrap(), DOSTime {
+            hour: 0,
+            minute: 0,
+            second: 0,
+        });
+
+        // 13:24:54
+        assert_eq!(DOSTime::try_from_le([0x1B, 0x6B]).unwrap(), DOSTime {
+            hour: 13,
+            minute: 24,
+            second: 54,
+        });
+
+        // 23:59:58 - last possible time
+        assert_eq!(DOSTime::try_from_le([0x7D, 0xBF]).unwrap(), DOSTime {
+            hour: 23,
+            minute: 59,
+            second: 58,
+        });
+
+        // Test invalid times
+        // 24:00:00 - high hour
+        assert_eq!(
+            DOSTime::try_from_le([0x00, 0xC0]).expect_err("High hour allowed."),
+            TimeError::InvalidHour,
+        );
+
+        // 00:60:00 - high minute
+        assert_eq!(
+            DOSTime::try_from_le([0x80, 0x07]).expect_err("High minute allowed."),
+            TimeError::InvalidMinute
+        );
+
+        // 00:00:60 - high second
+        assert_eq!(
+            DOSTime::try_from_le([0x1E, 0x00]).expect_err("High second allowed."),
+            TimeError::InvalidSecond
+        );
+    }
+
+    #[test]
+    fn test_time_from_u8arr_be() {
+        // Test converting from a [u8; 2] to a DOSTime
+
+        // Test valid times
+        // 00:00:00 - midnight
+        assert_eq!(DOSTime::try_from_be([0x00, 0x00]).unwrap(), DOSTime {
+            hour: 0,
+            minute: 0,
+            second: 0,
+        });
+
+        // 13:24:54
+        assert_eq!(DOSTime::try_from_be([0x6B, 0x1B]).unwrap(), DOSTime {
+            hour: 13,
+            minute: 24,
+            second: 54,
+        });
+
+        // 23:59:58 - last possible time
+        assert_eq!(DOSTime::try_from_be([0xBF, 0x7D]).unwrap(), DOSTime {
+            hour: 23,
+            minute: 59,
+            second: 58,
+        });
+
+        // Test invalid times
+        // 24:00:00 - high hour
+        assert_eq!(
+            DOSTime::try_from_be([0xC0, 0x00]).expect_err("High hour allowed."),
+            TimeError::InvalidHour,
+        );
+
+        // 00:60:00 - high minute
+        assert_eq!(
+            DOSTime::try_from_be([0x07, 0x80]).expect_err("High minute allowed."),
+            TimeError::InvalidMinute
+        );
+
+        // 00:00:60 - high second
+        assert_eq!(
+            DOSTime::try_from_be([0x00, 0x1E]).expect_err("High second allowed."),
+            TimeError::InvalidSecond
+        );
+    }
+
+    #[test]
     fn test_time_from_u8arr() {
         // Test converting from a [u8; 2] to a DOSTime
 
@@ -334,6 +457,80 @@ mod tests {
             DOSTime::try_from([0x1E, 0x00]).expect_err("High second allowed."),
             TimeError::InvalidSecond
         );
+    }
+
+    #[test]
+    fn test_time_to_u8arr_le() {
+        // Test converting to a [u8; 2] from a DOSTime
+
+        // 00:00:00 - midnight
+        let time: [u8; 2] = DOSTime {
+            hour: 0,
+            minute: 0,
+            second: 0,
+        }.into_le();
+        assert_eq!(time, [0x00, 0x00]);
+
+        // 13:24:54
+        let time: [u8; 2] = DOSTime {
+            hour: 13,
+            minute: 24,
+            second: 54,
+        }.into_le();
+        assert_eq!(time, [0x1B, 0x6B]);
+
+        // 23:59:58 - last possible time
+        let time: [u8; 2] = DOSTime {
+            hour: 23,
+            minute: 59,
+            second: 58,
+        }.into_le();
+        assert_eq!(time, [0x7D, 0xBF]);
+
+        // 06:13:23 - odd seconds (should be impossible)
+        let time: [u8; 2] = DOSTime {
+            hour: 6,
+            minute: 13,
+            second: 23,
+        }.into_le();
+        assert_eq!(time, [0xAB, 0x31]);
+    }
+
+    #[test]
+    fn test_time_to_u8arr_be() {
+        // Test converting to a [u8; 2] from a DOSTime
+
+        // 00:00:00 - midnight
+        let time: [u8; 2] = DOSTime {
+            hour: 0,
+            minute: 0,
+            second: 0,
+        }.into_be();
+        assert_eq!(time, [0x00, 0x00]);
+
+        // 13:24:54
+        let time: [u8; 2] = DOSTime {
+            hour: 13,
+            minute: 24,
+            second: 54,
+        }.into_be();
+        assert_eq!(time, [0x6B, 0x1B]);
+
+        // 23:59:58 - last possible time
+        let time: [u8; 2] = DOSTime {
+            hour: 23,
+            minute: 59,
+            second: 58,
+        }.into_be();
+        assert_eq!(time, [0xBF, 0x7D]);
+
+        // 06:13:23 - odd seconds (should be impossible)
+        let time: [u8; 2] = DOSTime {
+            hour: 6,
+            minute: 13,
+            second: 23,
+        }.into_be();
+        assert_eq!(time, [0x31, 0xAB]);
     }
 
     #[test]
