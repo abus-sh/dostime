@@ -105,6 +105,21 @@ impl DOSDate {
         Ok(date)
     }
 
+    /// Returns the year for this `DOSDate`.
+    pub fn year(&self) -> u16 {
+        self.year
+    }
+
+    /// Returns the month for this `DOSDate`.
+    pub fn month(&self) -> u8 {
+        self.month
+    }
+
+    /// Returns the day for this `DOSDate`.
+    pub fn day(&self) -> u8 {
+        self.day
+    }
+
     /// Determines if the date is actually a real date that could be represented by a DOS date. If
     /// the date is invalid, then a `DateError` is returned.
     fn validate(&self) -> Result<(), DateError> {

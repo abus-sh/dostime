@@ -98,6 +98,36 @@ impl DOSDateTime {
             time,
         })
     }
+
+    /// Returns the year for this `DOSDate`.
+    pub fn year(&self) -> u16 {
+        self.date.year()
+    }
+
+    /// Returns the month for this `DOSDate`.
+    pub fn month(&self) -> u8 {
+        self.date.month()
+    }
+
+    /// Returns the day for this `DOSDate`.
+    pub fn day(&self) -> u8 {
+        self.date.day()
+    }
+
+    /// Returns the hour for this `DOSTime`.
+    pub fn hour(&self) -> u8 {
+        self.time.hour()
+    }
+
+    /// Returns the minute for this `DOSTime`.
+    pub fn minute(&self) -> u8 {
+        self.time.minute()
+    }
+
+    /// Returns the second for this `DOSTime`.
+    pub fn second(&self) -> u8 {
+        self.time.second()
+    }
 }
 
 impl From<(DOSDate, DOSTime)> for DOSDateTime {

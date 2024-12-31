@@ -103,6 +103,21 @@ impl DOSTime {
         Ok(time)
     }
 
+    /// Returns the hour for this `DOSTime`.
+    pub fn hour(&self) -> u8 {
+        self.hour
+    }
+
+    /// Returns the minute for this `DOSTime`.
+    pub fn minute(&self) -> u8 {
+        self.minute
+    }
+
+    /// Returns the second for this `DOSTime`.
+    pub fn second(&self) -> u8 {
+        self.second
+    }
+
     /// Determines if the time is actually a real time that could be represented by a DOS time. If
     /// the time is invalid, then a `TimeError` is returned.
     fn validate(&self) -> Result<(), TimeError> {
