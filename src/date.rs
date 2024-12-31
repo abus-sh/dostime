@@ -3,17 +3,19 @@
 
 use core::fmt::Display;
 
+use crate::traits::{IntoBE, IntoLE, TryFromBE, TryFromLE};
+
 /// A date in MS-DOS format.
 /// 
 /// MS-DOS dates are typically stored as little-endian 2-byte values. The 5 lowest order bits are
 /// the day, the 4 middle bits are the month, and the 7 highest bits are the year offest from 1980.
 /// 
 /// ```
-/// use dostime::dosdate;
+/// use dostime::DOSDate;
 /// 
-/// let date1 = dosdate::DOSDate::new(2017, 4, 6).unwrap();
-/// let date2 = dosdate::DOSDate::try_from(0x4A86).unwrap();
-/// let date3 = dosdate::DOSDate::try_from([0x86, 0x4A]).unwrap();
+/// let date1 = DOSDate::new(2017, 4, 6).unwrap();
+/// let date2 = DOSDate::try_from(0x4A86).unwrap();
+/// let date3 = DOSDate::try_from([0x86, 0x4A]).unwrap();
 /// 
 /// assert_eq!(date1, date2);
 /// assert_eq!(date1, date3);
@@ -68,21 +70,22 @@ impl DOSDate {
     /// invalid).
     /// 
     /// ```
-    /// use dostime::dosdate;
+    /// use dostime::DOSDate;
+    /// use dostime::date::DateError;
     /// 
     /// // Construct valid dates.
-    /// let date1 = dosdate::DOSDate::new(1980, 1, 1).unwrap();
-    /// let date2 = dosdate::DOSDate::new(2000, 3, 4).unwrap();
+    /// let date1 = DOSDate::new(1980, 1, 1).unwrap();
+    /// let date2 = DOSDate::new(2000, 3, 4).unwrap();
     /// 
     /// // Invalid dates can't be constructed.
-    /// let bad_year = dosdate::DOSDate::new(1979, 12, 1).expect_err("");
-    /// assert_eq!(bad_year, dosdate::DateError::InvalidYear);
+    /// let bad_year = DOSDate::new(1979, 12, 1).expect_err("");
+    /// assert_eq!(bad_year, DateError::InvalidYear);
     /// 
-    /// let bad_month = dosdate::DOSDate::new(2000, 13, 1).expect_err("");
-    /// assert_eq!(bad_month, dosdate::DateError::InvalidMonth);
+    /// let bad_month = DOSDate::new(2000, 13, 1).expect_err("");
+    /// assert_eq!(bad_month, DateError::InvalidMonth);
     /// 
-    /// let bad_day = dosdate::DOSDate::new(2000, 11, 31).expect_err("");
-    /// assert_eq!(bad_day, dosdate::DateError::InvalidDay);
+    /// let bad_day = DOSDate::new(2000, 11, 31).expect_err("");
+    /// assert_eq!(bad_day, DateError::InvalidDay);
     /// ```
     pub fn new(year: u16, month: u8, day: u8) -> Result<Self, DateError> {
         let date = Self {
@@ -188,18 +191,47 @@ impl Into<u16> for DOSDate {
     }
 }
 
+impl TryFromLE<[u8; 2]> for DOSDate {
+    type Error = DateError;
+
+    fn try_from_le(value: [u8; 2]) -> Result<Self, Self::Error> {
+        DOSDate::try_from(u16::from_le_bytes(value))
+    }
+}
+
+impl TryFromBE<[u8; 2]> for DOSDate {
+    type Error = DateError;
+
+    fn try_from_be(value: [u8; 2]) -> Result<Self, Self::Error> {
+        DOSDate::try_from(u16::from_be_bytes(value))
+    }
+}
+
 impl TryFrom<[u8; 2]> for DOSDate {
     type Error = DateError;
 
     fn try_from(value: [u8; 2]) -> Result<Self, Self::Error> {
-        DOSDate::try_from(u16::from_le_bytes(value))
+        DOSDate::try_from_le(value)
+    }
+}
+
+impl IntoLE<[u8; 2]> for DOSDate {
+    fn into_le(self) -> [u8; 2] {
+        let bytes: u16 = self.into();
+        bytes.to_le_bytes()
+    }
+}
+
+impl IntoBE<[u8; 2]> for DOSDate {
+    fn into_be(self) -> [u8; 2] {
+        let bytes: u16 = self.into();
+        bytes.to_be_bytes()
     }
 }
 
 impl Into<[u8; 2]> for DOSDate {
     fn into(self) -> [u8; 2] {
-        let bytes: u16 = self.into();
-        bytes.to_le_bytes()
+        self.into_le()
     }
 }
 
@@ -417,6 +449,150 @@ mod tests {
     }
 
     #[test]
+    fn test_date_from_u8arr_le() {
+        // Test converting from a [u8; 2] to a DOSDate
+
+        // Test valid dates
+        // 1980-01-01 - epoch
+        assert_eq!(DOSDate::try_from_le([0x21, 0x00]).unwrap(), DOSDate {
+            year: 1980,
+            month: 1,
+            day: 1,
+        });
+
+        // 2017-04-06
+        assert_eq!(DOSDate::try_from_le([0x86, 0x4A]).unwrap(), DOSDate {
+            year: 2017,
+            month: 4,
+            day: 6,
+        });
+
+        // 2107-12-31 - last possible date
+        assert_eq!(DOSDate::try_from_le([0x9F, 0xFF]).unwrap(), DOSDate {
+            year: 2107,
+            month: 12,
+            day: 31,
+        });
+
+        // 2016-02-29 - leap year
+        assert_eq!(DOSDate::try_from_le([0x5D, 0x28]).unwrap(), DOSDate {
+            year: 2000,
+            month: 2,
+            day: 29,
+        });
+
+        // 2000-02-29 - leap year, divisible by 400
+        assert_eq!(DOSDate::try_from_le([0x5D, 0x28]).unwrap(), DOSDate {
+            year: 2000,
+            month: 2,
+            day: 29,
+        });
+
+        // Test invalid dates
+        // 1999-00-02 - low month
+        assert_eq!(
+            DOSDate::try_from_le([0x02, 0x26]).expect_err("Low month allowed."),
+            DateError::InvalidMonth
+        );
+
+        // 2001-13-17 - high month
+        assert_eq!(
+            DOSDate::try_from_le([0xB1, 0x2B]).expect_err("High month allowed."),
+            DateError::InvalidMonth
+        );
+
+        // 2020-05-00 - low day
+        assert_eq!(
+            DOSDate::try_from_le([0xA0, 0x28]).expect_err("Low day allowed."),
+            DateError::InvalidDay
+        );
+
+        // 2003-02-29 - non-leap year
+        assert_eq!(
+            DOSDate::try_from_le([0x5D, 0x2E]).expect_err("2/29 allowed on non-leap year."),
+            DateError::InvalidDay
+        );
+
+        // 2100-02-29 - non-leap year, divisible by 100
+        assert_eq!(
+            DOSDate::try_from_le([0x5D, 0xF0]).expect_err("2/29 allowed on non-leap year divisible by 100."),
+            DateError::InvalidDay
+        );
+    }
+
+    #[test]
+    fn test_date_from_u8arr_be() {
+        // Test converting from a [u8; 2] to a DOSDate
+
+        // Test valid dates
+        // 1980-01-01 - epoch
+        assert_eq!(DOSDate::try_from_be([0x00, 0x21]).unwrap(), DOSDate {
+            year: 1980,
+            month: 1,
+            day: 1,
+        });
+
+        // 2017-04-06
+        assert_eq!(DOSDate::try_from_be([0x4A, 0x86]).unwrap(), DOSDate {
+            year: 2017,
+            month: 4,
+            day: 6,
+        });
+
+        // 2107-12-31 - last possible date
+        assert_eq!(DOSDate::try_from_be([0xFF, 0x9F]).unwrap(), DOSDate {
+            year: 2107,
+            month: 12,
+            day: 31,
+        });
+
+        // 2016-02-29 - leap year
+        assert_eq!(DOSDate::try_from_be([0x48, 0x5D]).unwrap(), DOSDate {
+            year: 2016,
+            month: 2,
+            day: 29,
+        });
+
+        // 2000-02-29 - leap year, divisible by 400
+        assert_eq!(DOSDate::try_from_be([0x28, 0x5D]).unwrap(), DOSDate {
+            year: 2000,
+            month: 2,
+            day: 29,
+        });
+
+        // Test invalid dates
+        // 1999-00-02 - low month
+        assert_eq!(
+            DOSDate::try_from_be([0x26, 0x02]).expect_err("Low month allowed."),
+            DateError::InvalidMonth
+        );
+
+        // 2001-13-17 - high month
+        assert_eq!(
+            DOSDate::try_from_be([0x2B, 0xB1]).expect_err("High month allowed."),
+            DateError::InvalidMonth
+        );
+
+        // 2020-05-00 - low day
+        assert_eq!(
+            DOSDate::try_from_be([0x28, 0xA0]).expect_err("Low day allowed."),
+            DateError::InvalidDay
+        );
+
+        // 2003-02-29 - non-leap year
+        assert_eq!(
+            DOSDate::try_from_be([0x2E, 0x5D]).expect_err("2/29 allowed on non-leap year."),
+            DateError::InvalidDay
+        );
+
+        // 2100-02-29 - non-leap year, divisible by 100
+        assert_eq!(
+            DOSDate::try_from_be([0xF0, 0x5D]).expect_err("2/29 allowed on non-leap year divisible by 100."),
+            DateError::InvalidDay
+        );
+    }
+
+    #[test]
     fn test_date_from_u8arr() {
         // Test converting from a [u8; 2] to a DOSDate
 
@@ -443,8 +619,8 @@ mod tests {
         });
 
         // 2016-02-29 - leap year
-        assert_eq!(DOSDate::try_from([0x5D, 0x28]).unwrap(), DOSDate {
-            year: 2000,
+        assert_eq!(DOSDate::try_from([0x5D, 0x48]).unwrap(), DOSDate {
+            year: 2016,
             month: 2,
             day: 29,
         });
@@ -486,6 +662,96 @@ mod tests {
             DOSDate::try_from([0x5D, 0xF0]).expect_err("2/29 allowed on non-leap year divisible by 100."),
             DateError::InvalidDay
         );
+    }
+
+    #[test]
+    fn test_date_to_u8arr_le() {
+        // Test converting to a [u8; 2] from a DOSDate
+
+        // 1980-01-01 - epoch
+        let date: [u8; 2] = DOSDate {
+            year: 1980,
+            month: 1,
+            day: 1
+        }.into_le();
+        assert_eq!(date, [0x21, 0x00]);
+
+        // 2017-04-06
+        let date: [u8; 2] = DOSDate {
+            year: 2017,
+            month: 4,
+            day: 6
+        }.into_le();
+        assert_eq!(date, [0x86, 0x4A]);
+
+        // 2107-12-31 - last possible date
+        let date: [u8; 2] = DOSDate {
+            year: 2107,
+            month: 12,
+            day: 31
+        }.into_le();
+        assert_eq!(date, [0x9F, 0xFF]);
+
+        // 2016-02-29 - leap year
+        let date: [u8; 2] = DOSDate {
+            year: 2016,
+            month: 2,
+            day: 29
+        }.into_le();
+        assert_eq!(date, [0x5D, 0x48]);
+
+        // 2000-02-29 - leap year, divisible by 400
+        let date: [u8; 2] = DOSDate {
+            year: 2000,
+            month: 2,
+            day: 29
+        }.into_le();
+        assert_eq!(date, [0x5D, 0x28]);
+    }
+
+    #[test]
+    fn test_date_to_u8arr_be() {
+        // Test converting to a [u8; 2] from a DOSDate
+
+        // 1980-01-01 - epoch
+        let date: [u8; 2] = DOSDate {
+            year: 1980,
+            month: 1,
+            day: 1
+        }.into_be();
+        assert_eq!(date, [0x00, 0x21]);
+
+        // 2017-04-06
+        let date: [u8; 2] = DOSDate {
+            year: 2017,
+            month: 4,
+            day: 6
+        }.into_be();
+        assert_eq!(date, [0x4A, 0x86]);
+
+        // 2107-12-31 - last possible date
+        let date: [u8; 2] = DOSDate {
+            year: 2107,
+            month: 12,
+            day: 31
+        }.into_be();
+        assert_eq!(date, [0xFF, 0x9F]);
+
+        // 2016-02-29 - leap year
+        let date: [u8; 2] = DOSDate {
+            year: 2016,
+            month: 2,
+            day: 29
+        }.into_be();
+        assert_eq!(date, [0x48, 0x5D]);
+
+        // 2000-02-29 - leap year, divisible by 400
+        let date: [u8; 2] = DOSDate {
+            year: 2000,
+            month: 2,
+            day: 29
+        }.into_be();
+        assert_eq!(date, [0x28, 0x5D]);
     }
 
     #[test]
