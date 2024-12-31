@@ -8,7 +8,5 @@ default, this crate treats integers as big-endian and arrays as little-endian. I
 support for treating arrays as big-endian will be added.
 
 ## Future Features
-- Add explicit big-endian and little-endian methods for conversion (ex. `try_into_le` and
-`try_into_be`)
 - Add support for Serde
 - Other cool features as I think of them (or as people open issues)
