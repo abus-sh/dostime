@@ -3,7 +3,7 @@
 
 use core::fmt::Display;
 
-use crate::{date::{DOSDate, DateError}, time::{DOSTime, TimeError}};
+use crate::{date::{DOSDate, DateError}, time::{DOSTime, TimeError}, traits::{IntoBE, IntoLE, TryFromBE, TryFromLE}};
 
 /// A datetime in MS-Dos format.
 /// 
@@ -95,18 +95,47 @@ impl Into<u32> for DOSDateTime {
     }
 }
 
+impl TryFromLE<[u8; 4]> for DOSDateTime {
+    type Error = DateTimeError;
+
+    fn try_from_le(value: [u8; 4]) -> Result<Self, Self::Error> {
+        DOSDateTime::try_from(u32::from_le_bytes(value))
+    }
+}
+
+impl TryFromBE<[u8; 4]> for DOSDateTime {
+    type Error = DateTimeError;
+
+    fn try_from_be(value: [u8; 4]) -> Result<Self, Self::Error> {
+        DOSDateTime::try_from(u32::from_be_bytes(value))
+    }
+}
+
 impl TryFrom<[u8; 4]> for DOSDateTime {
     type Error = DateTimeError;
 
     fn try_from(value: [u8; 4]) -> Result<Self, Self::Error> {
-        DOSDateTime::try_from(u32::from_le_bytes(value))
+        DOSDateTime::try_from_le(value)
+    }
+}
+
+impl IntoLE<[u8; 4]> for DOSDateTime {
+    fn into_le(self) -> [u8; 4] {
+        let bytes: u32 = self.into();
+        bytes.to_le_bytes()
+    }
+}
+
+impl IntoBE<[u8; 4]> for DOSDateTime {
+    fn into_be(self) -> [u8; 4] {
+        let bytes: u32 = self.into();
+        bytes.to_be_bytes()
     }
 }
 
 impl Into<[u8; 4]> for DOSDateTime {
     fn into(self) -> [u8; 4] {
-        let bytes: u32 = self.into();
-        bytes.to_le_bytes()
+        self.into_le()
     }
 }
 
@@ -209,6 +238,106 @@ mod tests {
             time: DOSTime::new(23, 59, 58).unwrap(),
         }.into();
         assert_eq!(datetime, 0xFF9F_BF7D);
+    }
+
+    #[test]
+    fn test_datetime_from_u8arr_le() {
+        // Test converting from a [u8; 4] to a DOSDateTime
+        
+        // Test valid datetimes
+        // 1980-01-01 00:00:00 - epoch
+        assert_eq!(DOSDateTime::try_from_le([0x00, 0x00, 0x21, 0x00]).unwrap(), DOSDateTime {
+            date: DOSDate::new(1980, 1, 1).unwrap(),
+            time: DOSTime::new(0, 0, 0).unwrap(),
+        });
+
+        // 2017-04-06 13:24:54
+        assert_eq!(DOSDateTime::try_from_le([0x1B, 0x6B, 0x86, 0x4A]).unwrap(), DOSDateTime {
+            date: DOSDate::new(2017, 4, 6).unwrap(),
+            time: DOSTime::new(13, 24, 54).unwrap(),
+        });
+
+        // 2107-12-31 23:59:58 - last possible datetime
+        assert_eq!(DOSDateTime::try_from_le([0x7D, 0xBF, 0x9F, 0xFF]).unwrap(), DOSDateTime {
+            date: DOSDate::new(2107, 12, 31).unwrap(),
+            time: DOSTime::new(23, 59, 58).unwrap(),
+        });
+        
+        // Test invalid dates
+        // 1999-00-02 00:00:00 - low month
+        assert!(DOSDateTime::try_from_le([0x00, 0x00, 0x02, 0x26]).is_err());
+
+        // 2001-13-17 00:00:00 - high month
+        assert!(DOSDateTime::try_from_le([0x00, 0x00, 0xB1, 0x2B]).is_err());
+
+        // 2020-05-00 00:00:00 - low day
+        assert!(DOSDateTime::try_from_le([0x00, 0x00, 0xA0, 0x28]).is_err());
+
+        // 2003-02-29 00:00:00 - non-leap year
+        assert!(DOSDateTime::try_from_le([0x00, 0x00, 0x5D, 0x2E]).is_err());
+
+        // 2100-02-29 00:00:00 - non-leap year, divisible by 100
+        assert!(DOSDateTime::try_from_le([0x00, 0x00, 0x5D, 0xF0]).is_err());
+
+        // Test invalid times
+        // 1980-01-01 24:00:00 - high hour
+        assert!(DOSDateTime::try_from_le([0x00, 0xC0, 0x21, 0x00]).is_err());
+
+        // 1980-01-01 00:60:00 - high minute
+        assert!(DOSDateTime::try_from_le([0x80, 0x07, 0x21, 0x00]).is_err());
+
+        // 1980-01-01 00:00:60 - high second
+        assert!(DOSDateTime::try_from_le([0x1E, 0x00, 0x21, 0x00]).is_err());
+    }
+
+    #[test]
+    fn test_datetime_from_u8arr_be() {
+        // Test converting from a [u8; 4] to a DOSDateTime
+        
+        // Test valid datetimes
+        // 1980-01-01 00:00:00 - epoch
+        assert_eq!(DOSDateTime::try_from_be([0x00, 0x21, 0x00, 0x00]).unwrap(), DOSDateTime {
+            date: DOSDate::new(1980, 1, 1).unwrap(),
+            time: DOSTime::new(0, 0, 0).unwrap(),
+        });
+
+        // 2017-04-06 13:24:54
+        assert_eq!(DOSDateTime::try_from_be([0x4A, 0x86, 0x6B, 0x1B]).unwrap(), DOSDateTime {
+            date: DOSDate::new(2017, 4, 6).unwrap(),
+            time: DOSTime::new(13, 24, 54).unwrap(),
+        });
+
+        // 2107-12-31 23:59:58 - last possible datetime
+        assert_eq!(DOSDateTime::try_from_be([0xFF, 0x9F, 0xBF, 0x7D]).unwrap(), DOSDateTime {
+            date: DOSDate::new(2107, 12, 31).unwrap(),
+            time: DOSTime::new(23, 59, 58).unwrap(),
+        });
+        
+        // Test invalid dates
+        // 1999-00-02 00:00:00 - low month
+        assert!(DOSDateTime::try_from_be([0x26, 0x02, 0x00, 0x00]).is_err());
+
+        // 2001-13-17 00:00:00 - high month
+        assert!(DOSDateTime::try_from_be([0x2B, 0xB1, 0x00, 0x00]).is_err());
+
+        // 2020-05-00 00:00:00 - low day
+        assert!(DOSDateTime::try_from_be([0x28, 0xA0, 0x00, 0x00]).is_err());
+
+        // 2003-02-29 00:00:00 - non-leap year
+        assert!(DOSDateTime::try_from_be([0x2E, 0x5D, 0x00, 0x00]).is_err());
+
+        // 2100-02-29 00:00:00 - non-leap year, divisible by 100
+        assert!(DOSDateTime::try_from_be([0xF0, 0x5D, 0x00, 0x00]).is_err());
+
+        // Test invalid times
+        // 1980-01-01 24:00:00 - high hour
+        assert!(DOSDateTime::try_from_be([0x00, 0x21, 0xC0, 0x00]).is_err());
+
+        // 1980-01-01 00:60:00 - high minute
+        assert!(DOSDateTime::try_from_be([0x00, 0x21, 0x07, 0x80]).is_err());
+
+        // 1980-01-01 00:00:60 - high second
+        assert!(DOSDateTime::try_from_be([0x00, 0x21, 0x00, 0x1E]).is_err());
     }
 
     #[test]
