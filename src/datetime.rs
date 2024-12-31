@@ -11,6 +11,26 @@ use crate::{date::{DOSDate, DateError}, time::{DOSTime, TimeError}, traits::{Int
 /// the time and the second 2-bytes representing the date. For a more complete explanation on time
 /// format, see the documentation for `DOSDate` and `DOSTime`.
 /// 
+/// ```
+/// use dostime::{DOSDate, DOSTime, DOSDateTime};
+/// 
+/// let date = DOSDate::new(2017, 4, 6).unwrap();
+/// let time = DOSTime::new(13, 24, 54).unwrap();
+/// 
+/// let datetime1 = DOSDateTime::new(2017, 4, 6, 13, 24, 54).unwrap();
+/// let datetime2 = DOSDateTime::try_from((date, time)).unwrap();
+/// let datetime3 = DOSDateTime::try_from([0x1B, 0x6B, 0x86, 0x4A]).unwrap();
+/// 
+/// assert_eq!(datetime1, datetime2);
+/// assert_eq!(datetime1, datetime3);
+/// 
+/// let int: u32 = datetime1.into();
+/// assert_eq!(int, 0x4A86_6B1B);
+/// 
+/// let bytes: [u8; 4] = datetime2.into();
+/// assert_eq!(bytes, [0x1B, 0x6B, 0x86, 0x4A]);
+/// ```
+/// 
 /// The functions that convert to and from `u32`s interpret the value as big-endian since that is
 /// consistent with the behavior of the `u16` conversion for `DOSDate` and `DOSTime`. The functions
 /// that convert to and from `[u8; 4]` interpret the values as little-endian since the bytes are
@@ -37,21 +57,49 @@ pub enum DateTimeError {
 }
 
 impl DOSDateTime {
-    /// Construct a new datetime from an existing date and time.
+    /// Attempts to construct a new instance of `DOSDateTime`. If any aspect of the datetime is
+    /// invalid, then the creation fails and an error is returned. The error returned is based on
+    /// the error returned by `DOSDate::new` or `DOSTime::new`.
     /// 
     /// ```
-    /// use dostime::{DOSDate, DOSTime, DOSDateTime};
+    /// use dostime::DOSDateTime;
+    /// use dostime::datetime::DateTimeError;
+    /// use dostime::date::DateError;
+    /// use dostime::time::TimeError;
     /// 
-    /// let date1 = DOSDate::new(2017, 4, 6).unwrap();
-    /// let date2 = DOSDate::new(2000, 1, 2).unwrap();
+    /// // Construct valid datetimes.
+    /// let datetime1 = DOSDateTime::new(2017, 4, 6, 13, 24, 54).unwrap();
+    /// let datetime2 = DOSDateTime::new(1980, 1, 1, 0, 0, 0).unwrap();
     /// 
-    /// let time1 = DOSTime::new(0, 3, 12).unwrap();
-    /// let time2 = DOSTime::new(15, 21, 19).unwrap();
+    /// // Invalid datetimes can't be constructed.
+    /// let bad_date = DOSDateTime::new(2011, 2, 29, 14, 0, 2).unwrap_err();
+    /// assert_eq!(bad_date, DateTimeError::DateError(DateError::InvalidDay));
     /// 
-    /// let datetime1 = DOSDateTime::new(date1, time1);
-    /// let datetime2 = DOSDateTime::new(date2, time2);
+    /// let bad_time = DOSDateTime::new(1994, 9, 15, 14, 50, 60).unwrap_err();
+    /// assert_eq!(bad_time, DateTimeError::TimeError(TimeError::InvalidSecond));
     /// ```
-    pub fn new(date: DOSDate, time: DOSTime) -> Self {
+    pub fn new(year: u16, month: u8, day: u8, hour: u8, minute: u8, second: u8) -> Result<Self, DateTimeError> {
+        let date = match DOSDate::new(year, month, day) {
+            Err(err) => return Err(DateTimeError::DateError(err)),
+            Ok(date) => date,
+        };
+
+        let time = match DOSTime::new(hour, minute, second) {
+            Err(err) => return Err(DateTimeError::TimeError(err)),
+            Ok(time) => time,
+        };
+
+        Ok(Self {
+            date,
+            time,
+        })
+    }
+}
+
+impl From<(DOSDate, DOSTime)> for DOSDateTime {
+    fn from(value: (DOSDate, DOSTime)) -> Self {
+        let (date, time) = value;
+        
         Self {
             date,
             time,
