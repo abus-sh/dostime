@@ -41,7 +41,6 @@ assert_eq!(time, DOSTime::try_from([0x1B, 0x6B]).unwrap());
 
 ## Future Work
 
-- Conversion to/from Unix timestamps.
 - Compatibility with the `chrono` crate.
 - Compatibility with the `time` crate.
 
