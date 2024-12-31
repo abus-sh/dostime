@@ -3,7 +3,7 @@
 
 use core::fmt::Display;
 
-use crate::traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE};
+use crate::traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE, TryIntoBE};
 
 /// A time in MS-DOS format. Timestamps in the wild will always have an even number of seconds.
 /// 
@@ -118,10 +118,10 @@ impl DOSTime {
     }
 }
 
-impl TryFrom<u16> for DOSTime {
+impl TryFromBE<u16> for DOSTime {
     type Error = TimeError;
 
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
+    fn try_from_be(value: u16) -> Result<Self, Self::Error> {
         // TODO: 7z seems to always report 2 less than what this calculate to. Why?
         let hour = ((value & 0b1111100000000000) >> 11) as u8;
         let minute = ((value & 0b0000011111100000) >> 5) as u8;
@@ -138,6 +138,14 @@ impl TryFrom<u16> for DOSTime {
         }
 
         Ok(time)
+    }
+}
+
+impl TryFrom<u16> for DOSTime {
+    type Error = TimeError;
+
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        value.try_into_be()
     }
 }
 

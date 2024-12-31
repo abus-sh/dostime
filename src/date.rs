@@ -3,7 +3,7 @@
 
 use core::fmt::Display;
 
-use crate::traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE};
+use crate::traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE, TryIntoBE};
 
 /// A date in MS-DOS format.
 /// 
@@ -156,10 +156,10 @@ impl DOSDate {
     }
 }
 
-impl TryFrom<u16> for DOSDate {
+impl TryFromBE<u16> for DOSDate {
     type Error = DateError;
 
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
+    fn try_from_be(value: u16) -> Result<Self, Self::Error> {
         let year = ((value & 0b1111111000000000) >> 9) + 1980;
         let month = ((value & 0b0000000111100000) >> 5) as u8;
         let day = (value & 0b0000000000011111) as u8;
@@ -175,6 +175,14 @@ impl TryFrom<u16> for DOSDate {
         }
 
         Ok(date)
+    }
+}
+
+impl TryFrom<u16> for DOSDate {
+    type Error = DateError;
+
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        value.try_into_be()
     }
 }
 

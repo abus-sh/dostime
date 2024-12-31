@@ -3,7 +3,7 @@
 
 use core::fmt::Display;
 
-use crate::{date::{DOSDate, DateError}, time::{DOSTime, TimeError}, traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE}};
+use crate::{date::{DOSDate, DateError}, time::{DOSTime, TimeError}, traits::{FromBE, FromLE, IntoLE, TryFromBE, TryFromLE, TryIntoBE}};
 
 /// A datetime in MS-Dos format.
 /// 
@@ -107,10 +107,10 @@ impl From<(DOSDate, DOSTime)> for DOSDateTime {
     }
 }
 
-impl TryFrom<u32> for DOSDateTime {
+impl TryFromBE<u32> for DOSDateTime {
     type Error = DateTimeError;
 
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
+    fn try_from_be(value: u32) -> Result<Self, Self::Error> {
         let date = (value >> 16) as u16;
         let time = (value & 0xFFFF) as u16;
 
@@ -128,6 +128,14 @@ impl TryFrom<u32> for DOSDateTime {
             date,
             time,
         })
+    }
+}
+
+impl TryFrom<u32> for DOSDateTime {
+    type Error = DateTimeError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        value.try_into_be()
     }
 }
 
