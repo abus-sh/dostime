@@ -2,8 +2,8 @@
 #![warn(clippy::missing_docs_in_private_items)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-//! This crate converts `DOSTime`s, `DOSDate`s, `DOSDateTime`s to and from binary and integer
-//! formats. This crate is no_std compatible.
+//! This crate converts MS DOS times to and from various formats, including integers, byte arrays, and
+//! types in external crates (see the features for more information).
 //! 
 //! An explanation of the date and time formats can be found
 //! [here](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-dosdatetimetofiletime),
