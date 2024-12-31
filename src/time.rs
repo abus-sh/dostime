@@ -11,6 +11,23 @@ use crate::traits::{IntoBE, IntoLE, TryFromBE, TryFromLE};
 /// half the seconds (ex. a value of 25 corresponds to 50 seconds). The next 6 bits are the minutes
 /// and the remaining 5 bits are the hours.
 /// 
+/// ```
+/// use dostime::DOSTime;
+/// 
+/// let time1 = DOSTime::new(13, 24, 54).unwrap();
+/// let time2 = DOSTime::try_from(0x6B1B).unwrap();
+/// let time3 = DOSTime::try_from([0x1B, 0x6B]).unwrap();
+/// 
+/// assert_eq!(time1, time2);
+/// assert_eq!(time1, time3);
+/// 
+/// let int: u16 = time1.into();
+/// assert_eq!(int, 0x6B1B);
+/// 
+/// let bytes: [u8; 2] = time2.into();
+/// assert_eq!(bytes, [0x1B, 0x6B]);
+/// ```
+/// 
 /// For example, `0x6B1B` (big-endian) is `0b0110101100011011`, which corresponds to 13:24:54. See
 /// below for a working out of the conversion.
 /// 
