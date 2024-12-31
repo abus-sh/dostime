@@ -317,6 +317,88 @@ mod time {
     }
 }
 
+#[cfg(feature = "chrono-1")]
+mod chrono {
+    use chrono::{NaiveTime, Timelike};
+
+    use super::DOSTime;
+
+    impl From<DOSTime> for NaiveTime {
+        fn from(value: DOSTime) -> Self {
+            Self::from_hms_opt(value.hour as u32, value.minute as u32, value.second as u32)
+                .expect("DOSTime was constructed with an invalid time.")
+        }
+    }
+
+    impl From<NaiveTime> for DOSTime {
+        fn from(value: NaiveTime) -> Self {
+            Self::new(value.hour() as u8, value.minute() as u8, value.second() as u8)
+                .expect("Time can't be converted to DOSTime")
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use chrono::NaiveTime;
+
+        use crate::DOSTime;
+
+        #[test]
+        fn test_from_chrono_time() {
+            // 00:00:00 - midnight
+            let dtime = DOSTime::new(0, 0, 0).unwrap();
+            let ctime = NaiveTime::from_hms_opt(0, 0, 0).unwrap();
+            let ctime: DOSTime = ctime.into();
+            assert_eq!(dtime, ctime);
+
+            // 13:24:54
+            let dtime = DOSTime::new(13, 24, 54).unwrap();
+            let ctime = NaiveTime::from_hms_opt(13, 24, 54).unwrap();
+            let ctime: DOSTime = ctime.into();
+            assert_eq!(dtime, ctime);
+
+            // 23:59:58 - last possible time
+            let dtime = DOSTime::new(23, 59, 58).unwrap();
+            let ctime = NaiveTime::from_hms_opt(23, 59, 58).unwrap();
+            let ctime: DOSTime = ctime.into();
+            assert_eq!(dtime, ctime);
+
+            // 06:13:23 - odd seconds
+            let dtime = DOSTime::new(6, 13, 23).unwrap();
+            let ctime = NaiveTime::from_hms_opt(6, 13, 23).unwrap();
+            let ctime: DOSTime = ctime.into();
+            assert_eq!(dtime, ctime);
+        }
+
+        #[test]
+        fn test_to_chrono_time() {
+            // 00:00:00 - midnight
+            let dtime = DOSTime::new(0, 0, 0).unwrap();
+            let dtime: NaiveTime = dtime.into();
+            let ctime = NaiveTime::from_hms_opt(0, 0, 0).unwrap();
+            assert_eq!(dtime, ctime);
+
+            // 13:24:54
+            let dtime = DOSTime::new(13, 24, 54).unwrap();
+            let dtime: NaiveTime = dtime.into();
+            let ctime = NaiveTime::from_hms_opt(13, 24, 54).unwrap();
+            assert_eq!(dtime, ctime);
+
+            // 23:59:58 - last possible time
+            let dtime = DOSTime::new(23, 59, 58).unwrap();
+            let dtime: NaiveTime = dtime.into();
+            let ctime = NaiveTime::from_hms_opt(23, 59, 58).unwrap();
+            assert_eq!(dtime, ctime);
+
+            // 06:13:23 - odd seconds
+            let dtime = DOSTime::new(6, 13, 23).unwrap();
+            let dtime: NaiveTime = dtime.into();
+            let ctime = NaiveTime::from_hms_opt(6, 13, 23).unwrap();
+            assert_eq!(dtime, ctime);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::traits::IntoBE;

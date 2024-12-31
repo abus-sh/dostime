@@ -47,6 +47,8 @@
 //! - `serde-1` - enables (de)serialization with Serde
 //! - `time-1` - enables conversion to/from types in the `time` crate (`Date`, `Time`, and
 //! `PrimitiveDateTime`)
+//! - `chrono-1` - enables conversion to/from types in the `chrono` crate (`NaiveDate`, `NaiveTime`, and
+//! `NaiveDateTime`)
 
 /// In cases where big-endian vs little-endian differences matter, this module contains traits that
 /// can be used to define `Into`, `TryInto`, `From`, and `TryFrom` equivalents that are specifically
