@@ -40,6 +40,13 @@
 //! assert_eq!(bytes, [0x1B, 0x6B]);
 //! assert_eq!(time, DOSTime::try_from([0x1B, 0x6B]).unwrap());
 //! ```
+//! 
+//! # Features
+//! 
+//! - `std` (default) - enables features that rely on the standard library
+//! - `serde-1` - enables (de)serialization with Serde
+//! - `time-1` - enables conversion to/from types in the `time` crate (`Date`, `Time`, and
+//! `PrimitiveDateTime`)
 
 /// In cases where big-endian vs little-endian differences matter, this module contains traits that
 /// can be used to define `Into`, `TryInto`, `From`, and `TryFrom` equivalents that are specifically

@@ -279,6 +279,119 @@ impl Display for DOSDate {
     }
 }
 
+#[cfg(feature = "time-1")]
+mod time {
+    use time::{Date, Month};
+
+    use super::{DOSDate, DateError};
+
+    impl From<DOSDate> for Date {
+        fn from(value: DOSDate) -> Self {
+            let month: Month = value.month.try_into()
+                .expect("DOSDate was constructed with an invalid month.");
+
+            Self::from_calendar_date(value.year as i32, month, value.day)
+                .expect("DOSDate contained an invalid date.")
+        }
+    }
+
+    impl TryFrom<Date> for DOSDate {
+        type Error = DateError;
+
+        fn try_from(value: Date) -> Result<Self, Self::Error> {
+            let year: u16 = match value.year().try_into() {
+                Err(_) => return Err(DateError::InvalidYear),
+                Ok(year) => year,
+            };
+
+            Self::new(year, value.month() as u8, value.day())
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use time::{Date, Month};
+
+        use crate::DOSDate;
+
+        #[test]
+        fn test_from_time_date() {
+            // Test valid dates
+            // 1980-01-01 - epoch
+            let ddate = DOSDate::new(1980, 1, 1).unwrap();
+            let tdate = Date::from_calendar_date(1980, Month::January, 1).unwrap();
+            let tdate: DOSDate = tdate.try_into().unwrap();
+            assert_eq!(ddate, tdate);
+
+            // 2017-04-06
+            let ddate = DOSDate::new(2017, 4, 6).unwrap();
+            let tdate = Date::from_calendar_date(2017, Month::April, 6).unwrap();
+            let tdate: DOSDate = tdate.try_into().unwrap();
+            assert_eq!(ddate, tdate);
+
+            // 2107-12-31 - last possible date
+            let ddate = DOSDate::new(2107, 12, 31).unwrap();
+            let tdate = Date::from_calendar_date(2107, Month::December, 31).unwrap();
+            let tdate: DOSDate = tdate.try_into().unwrap();
+            assert_eq!(ddate, tdate);
+
+            // 2016-02-29 - leap year
+            let ddate = DOSDate::new(2016, 2, 29).unwrap();
+            let tdate = Date::from_calendar_date(2016, Month::February, 29).unwrap();
+            let tdate: DOSDate = tdate.try_into().unwrap();
+            assert_eq!(ddate, tdate);
+
+            // 2000-02-29 - leap year, divisible by 400
+            let ddate = DOSDate::new(2000, 2, 29).unwrap();
+            let tdate = Date::from_calendar_date(2000, Month::February, 29).unwrap();
+            let tdate: DOSDate = tdate.try_into().unwrap();
+            assert_eq!(ddate, tdate);
+
+            // Test invalid dates
+            // 1979-12-31 - too early
+            let tdate = Date::from_calendar_date(1979, Month::December, 31).unwrap();
+            assert!(DOSDate::try_from(tdate).is_err());
+
+            // 2108-01-01 - too late
+            let tdate = Date::from_calendar_date(2108, Month::January, 1).unwrap();
+            assert!(DOSDate::try_from(tdate).is_err());
+        }
+
+        #[test]
+        fn test_to_time_date() {
+            // 1980-01-01 - epoch
+            let ddate = DOSDate::new(1980, 1, 1).unwrap();
+            let ddate: Date = ddate.into();
+            let tdate = Date::from_calendar_date(1980, Month::January, 1).unwrap();
+            assert_eq!(ddate, tdate);
+
+            // 2017-04-06
+            let ddate = DOSDate::new(2017, 4, 6).unwrap();
+            let ddate: Date = ddate.into();
+            let tdate = Date::from_calendar_date(2017, Month::April, 6).unwrap();
+            assert_eq!(ddate, tdate);
+
+            // 2107-12-31 - last possible date
+            let ddate = DOSDate::new(2107, 12, 31).unwrap();
+            let ddate: Date = ddate.into();
+            let tdate = Date::from_calendar_date(2107, Month::December, 31).unwrap();
+            assert_eq!(ddate, tdate);
+
+            // 2016-02-29 - leap year
+            let ddate = DOSDate::new(2016, 2, 29).unwrap();
+            let ddate: Date = ddate.into();
+            let tdate = Date::from_calendar_date(2016, Month::February, 29).unwrap();
+            assert_eq!(ddate, tdate);
+
+            // 2000-02-29 - leap year, divisible by 400
+            let ddate = DOSDate::new(2000, 2, 29).unwrap();
+            let ddate: Date = ddate.into();
+            let tdate = Date::from_calendar_date(2000, Month::February, 29).unwrap();
+            assert_eq!(ddate, tdate);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::traits::IntoBE;
