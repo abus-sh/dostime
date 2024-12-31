@@ -39,6 +39,12 @@ assert_eq!(bytes, [0x1B, 0x6B]);
 assert_eq!(time, DOSTime::try_from([0x1B, 0x6B]).unwrap());
 ```
 
-## Future Features
-- Add support for Serde
-- Other cool features as I think of them (or as people open issues)
+## Future Work
+
+- Conversion to/from Unix timestamps.
+- Compatibility with the `chrono` crate.
+- Compatibility with the `time` crate.
+
+If anyone thinks of something else that this crate should have or spots any bugs, let me know! I'll
+see if I can add it. Alternatively, feel free to submit a pull request (or just fork it). I'll
+review and approve it as soon as I can.
