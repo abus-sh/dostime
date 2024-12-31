@@ -49,21 +49,22 @@ impl DOSTime {
     /// second is invalid if it is 60 or greater.
     /// 
     /// ```
-    /// use dostime::dostime;
+    /// use dostime::DOSTime;
+    /// use dostime::time::TimeError;
     /// 
     /// // Construct valid times.
-    /// let time1 = dostime::DOSTime::new(0, 0, 0).unwrap();
-    /// let time2 = dostime::DOSTime::new(15, 21, 19).unwrap();
+    /// let time1 = DOSTime::new(0, 0, 0).unwrap();
+    /// let time2 = DOSTime::new(15, 21, 19).unwrap();
     /// 
     /// // Invalid times can't be constructed.
-    /// let bad_hour = dostime::DOSTime::new(24, 12, 1).expect_err("");
-    /// assert_eq!(bad_hour, dostime::TimeError::InvalidHour);
+    /// let bad_hour = DOSTime::new(24, 12, 1).expect_err("");
+    /// assert_eq!(bad_hour, TimeError::InvalidHour);
     /// 
-    /// let bad_minute = dostime::DOSTime::new(18, 60, 3).expect_err("");
-    /// assert_eq!(bad_minute, dostime::TimeError::InvalidMinute);
+    /// let bad_minute = DOSTime::new(18, 60, 3).expect_err("");
+    /// assert_eq!(bad_minute, TimeError::InvalidMinute);
     /// 
-    /// let bad_second = dostime::DOSTime::new(4, 11, 60).expect_err("");
-    /// assert_eq!(bad_second, dostime::TimeError::InvalidSecond);
+    /// let bad_second = DOSTime::new(4, 11, 60).expect_err("");
+    /// assert_eq!(bad_second, TimeError::InvalidSecond);
     /// ```
     pub fn new(hour: u8, minute: u8, second: u8) -> Result<Self, TimeError> {
         let time = Self {

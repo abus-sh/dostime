@@ -40,18 +40,16 @@ impl DOSDateTime {
     /// Construct a new datetime from an existing date and time.
     /// 
     /// ```
-    /// use ::dostime::dosdatetime;
-    /// use ::dostime::dostime;
-    /// use ::dostime::dosdate;
+    /// use dostime::{DOSDate, DOSTime, DOSDateTime};
     /// 
-    /// let date1 = dosdate::DOSDate::new(2017, 4, 6).unwrap();
-    /// let date2 = dosdate::DOSDate::new(2000, 1, 2).unwrap();
+    /// let date1 = DOSDate::new(2017, 4, 6).unwrap();
+    /// let date2 = DOSDate::new(2000, 1, 2).unwrap();
     /// 
-    /// let time1 = dostime::DOSTime::new(0, 3, 12).unwrap();
-    /// let time2 = dostime::DOSTime::new(15, 21, 19).unwrap();
+    /// let time1 = DOSTime::new(0, 3, 12).unwrap();
+    /// let time2 = DOSTime::new(15, 21, 19).unwrap();
     /// 
-    /// let datetime1 = dosdatetime::DOSDateTime::new(date1, time1);
-    /// let datetime2 = dosdatetime::DOSDateTime::new(date2, time2);
+    /// let datetime1 = DOSDateTime::new(date1, time1);
+    /// let datetime2 = DOSDateTime::new(date2, time2);
     /// ```
     pub fn new(date: DOSDate, time: DOSTime) -> Self {
         Self {
