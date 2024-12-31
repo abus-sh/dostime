@@ -99,6 +99,40 @@ impl DOSDateTime {
         })
     }
 
+    /// Creates a new instance of a `DOSDateTime`. If any aspect of the datetime is invalid, then
+    /// the function panics.
+    /// 
+    /// ```
+    /// use dostime::DOSDateTime;
+    /// 
+    /// // Construct valid dates normally.
+    /// let date1 = DOSDateTime::new_or_panic(1980, 1, 1, 0, 0, 0);
+    /// let date2 = DOSDateTime::new_or_panic(2000, 3, 4, 15, 21, 19);
+    /// ```
+    /// 
+    /// ```should_panic
+    /// use dostime::DOSDateTime;
+    /// 
+    /// // Invalid dates panic
+    /// DOSDateTime::new_or_panic(2000, 11, 31, 12, 13, 14);
+    /// ```
+    pub fn new_or_panic(year: u16, month: u8, day: u8, hour: u8, minute: u8, second: u8) -> Self {
+        let date = match DOSDate::new(year, month, day) {
+            Err(_) => panic!("Invalid dates may not be constructed."),
+            Ok(date) => date,
+        };
+
+        let time = match DOSTime::new(hour, minute, second) {
+            Err(_) => panic!("Invalid times may not be constructed."),
+            Ok(time) => time,
+        };
+
+        Self {
+            date,
+            time,
+        }
+    }
+
     /// Returns the year for this `DOSDate`.
     pub fn year(&self) -> u16 {
         self.date.year()

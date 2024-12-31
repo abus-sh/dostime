@@ -105,6 +105,43 @@ impl DOSDate {
         Ok(date)
     }
 
+    /// Creates a new instance of a `DOSDate`. If the year, month, or day is invalid, then the
+    /// function panics.
+    /// 
+    /// A year is invalid if it is before 1980 or after 2107. DOS dates can't represent any time
+    /// before or after that year. A month is invalid if it is 0 or greater than 12 since the months
+    /// are represented by 1 (January) to 12 (December). A day is invalid if it is 0, greater than
+    /// 31, or it could not exist in the given month/year (ex. 4/31/XXXX is invalid, 2/29/2003 is
+    /// invalid).
+    /// 
+    /// ```
+    /// use dostime::DOSDate;
+    /// 
+    /// // Construct valid dates normally.
+    /// let date1 = DOSDate::new_or_panic(1980, 1, 1);
+    /// let date2 = DOSDate::new_or_panic(2000, 3, 4);
+    /// ```
+    /// 
+    /// ```should_panic
+    /// use dostime::DOSDate;
+    /// 
+    /// // Invalid dates panic
+    /// DOSDate::new_or_panic(2000, 11, 31);
+    /// ```
+    pub fn new_or_panic(year: u16, month: u8, day: u8) -> Self {
+        let date = Self {
+            year,
+            month,
+            day,
+        };
+
+        if let Err(_) = date.validate() {
+            panic!("Invalid dates may not be constructed.");
+        }
+
+        date
+    }
+
     /// Returns the year for this `DOSDate`.
     pub fn year(&self) -> u16 {
         self.year
@@ -581,6 +618,68 @@ mod tests {
         // 2100-02-29 - non-leap year, divisible by 100
         let error = DOSDate::new(2100, 2, 29).unwrap_err();
         assert_eq!(error, DateError::InvalidDay);
+    }
+
+    #[test]
+    fn test_new_or_panic() {
+        // Test valid dates
+        // 1980-01-01 - epoch
+        let date = DOSDate::new_or_panic(1980, 1, 1);
+        assert_eq!(date, DOSDate {
+            year: 1980,
+            month: 1,
+            day: 1,
+        });
+
+        // 2017-04-06
+        let date = DOSDate::new_or_panic(2017, 4, 6);
+        assert_eq!(date, DOSDate {
+            year: 2017,
+            month: 4,
+            day: 6,
+        });
+
+        // 2107-12-31 - last possible date
+        let date = DOSDate::new_or_panic(2107, 12, 31);
+        assert_eq!(date, DOSDate {
+            year: 2107,
+            month: 12,
+            day: 31,
+        });
+
+        // 2016-02-29 - leap year
+        let date = DOSDate::new_or_panic(2016, 2, 29);
+        assert_eq!(date, DOSDate {
+            year: 2016,
+            month: 2,
+            day: 29,
+        });
+
+        // 2000-02-29 - leap year, divisible by 400
+        let date = DOSDate::new_or_panic(2000, 2, 29);
+        assert_eq!(date, DOSDate {
+            year: 2000,
+            month: 2,
+            day: 29,
+        });
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_new_or_panic_inv_year() {
+        DOSDate::new_or_panic(1979, 12, 31);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_new_or_panic_inv_month() {
+        DOSDate::new_or_panic(2000, 13, 31);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_new_or_panic_inv_day() {
+        DOSDate::new_or_panic(2000, 11, 31);
     }
 
     #[test]

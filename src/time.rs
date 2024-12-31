@@ -103,6 +103,40 @@ impl DOSTime {
         Ok(time)
     }
 
+    /// Creates a new instance of a `DOSTime`. If the year, month, or day is invalid, then the
+    /// function panics.
+    /// 
+    /// An hour is invalid if it is 24 or greater. A minute is invalid if it is 60 or greater. A
+    /// second is invalid if it is 60 or greater.
+    /// 
+    /// ```
+    /// use dostime::DOSTime;
+    /// 
+    /// // Construct valid dates normally.
+    /// let date1 = DOSTime::new_or_panic(0, 0, 0);
+    /// let date2 = DOSTime::new_or_panic(15, 21, 19);
+    /// ```
+    /// 
+    /// ```should_panic
+    /// use dostime::DOSTime;
+    /// 
+    /// // Invalid dates panic
+    /// DOSTime::new_or_panic(4, 20, 60);
+    /// ```
+    pub fn new_or_panic(hour: u8, minute: u8, second: u8) -> Self {
+        let time = Self {
+            hour,
+            minute,
+            second,
+        };
+
+        if let Err(_) = time.validate() {
+            panic!("Invalid times may not be constructed.");
+        }
+
+        time
+    }
+
     /// Returns the hour for this `DOSTime`.
     pub fn hour(&self) -> u8 {
         self.hour
@@ -446,6 +480,52 @@ mod tests {
         // 00:00:60 - high second
         let error = DOSTime::new(0, 0, 60).unwrap_err();
         assert_eq!(error, TimeError::InvalidSecond);
+    }
+
+    #[test]
+    fn test_new_or_panic() {
+        // Test valid times
+        // 00:00:00 - midnight
+        let time = DOSTime::new_or_panic(0, 0, 0);
+        assert_eq!(time, DOSTime {
+            hour: 0,
+            minute: 0,
+            second: 0
+        });
+
+        // 13:24:54
+        let time = DOSTime::new_or_panic(13, 24, 54);
+        assert_eq!(time, DOSTime {
+            hour: 13,
+            minute: 24,
+            second: 54,
+        });
+
+        // 23:59:58 - last possible time
+        let time = DOSTime::new_or_panic(23, 59, 58);
+        assert_eq!(time, DOSTime {
+            hour: 23,
+            minute: 59,
+            second: 58
+        });
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_new_or_panic_inv_hour() {
+        DOSTime::new_or_panic(24, 12, 13);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_new_or_panic_inv_minute() {
+        DOSTime::new_or_panic(11, 60, 13);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_new_or_panic_inv_second() {
+        DOSTime::new_or_panic(11, 12, 60);
     }
 
     #[test]
