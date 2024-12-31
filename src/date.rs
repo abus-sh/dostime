@@ -392,6 +392,116 @@ mod time {
     }
 }
 
+#[cfg(feature = "chrono-1")]
+mod chrono {
+    use chrono::{Datelike, NaiveDate};
+
+    use super::{DOSDate, DateError};
+
+    impl From<DOSDate> for NaiveDate {
+        fn from(value: DOSDate) -> Self {
+            NaiveDate::from_ymd_opt(value.year as i32, value.month as u32, value.day as u32)
+                .expect("DOSDate contained an invalid date.")
+        }
+    }
+
+    impl TryFrom<NaiveDate> for DOSDate {
+        type Error = DateError;
+
+        fn try_from(value: NaiveDate) -> Result<Self, Self::Error> {
+            let year: u16 = match value.year().try_into() {
+                Err(_) => return Err(DateError::InvalidYear),
+                Ok(year) => year,
+            };
+
+            Self::new(year, value.month() as u8, value.day() as u8)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use chrono::NaiveDate;
+
+        use crate::DOSDate;
+
+        #[test]
+        fn test_from_chrono_date() {
+            // Test valid dates
+            // 1980-01-01 - epoch
+            let ddate = DOSDate::new(1980, 1, 1).unwrap();
+            let cdate = NaiveDate::from_ymd_opt(1980, 1, 1).unwrap();
+            let cdate: DOSDate = cdate.try_into().unwrap();
+            assert_eq!(ddate, cdate);
+
+            // 2017-04-06
+            let ddate = DOSDate::new(2017, 4, 6).unwrap();
+            let cdate = NaiveDate::from_ymd_opt(2017, 4, 6).unwrap();
+            let cdate: DOSDate = cdate.try_into().unwrap();
+            assert_eq!(ddate, cdate);
+
+            // 2107-12-31 - last possible date
+            let ddate = DOSDate::new(2107, 12, 31).unwrap();
+            let cdate = NaiveDate::from_ymd_opt(2107, 12, 31).unwrap();
+            let cdate: DOSDate = cdate.try_into().unwrap();
+            assert_eq!(ddate, cdate);
+
+            // 2016-02-29 - leap year
+            let ddate = DOSDate::new(2016, 2, 29).unwrap();
+            let cdate = NaiveDate::from_ymd_opt(2016, 2, 29).unwrap();
+            let cdate: DOSDate = cdate.try_into().unwrap();
+            assert_eq!(ddate, cdate);
+
+            // 2000-02-29 - leap year, divisible by 400
+            let ddate = DOSDate::new(2000, 2, 29).unwrap();
+            let cdate = NaiveDate::from_ymd_opt(2000, 2, 29).unwrap();
+            let cdate: DOSDate = cdate.try_into().unwrap();
+            assert_eq!(ddate, cdate);
+
+            // Test invalid dates
+            // 1979-12-31 - too early
+            let cdate = NaiveDate::from_ymd_opt(1979, 12, 31).unwrap();
+            assert!(DOSDate::try_from(cdate).is_err());
+
+            // 2108-01-01 - too late
+            let cdate = NaiveDate::from_ymd_opt(2108, 1, 1).unwrap();
+            assert!(DOSDate::try_from(cdate).is_err());
+        }
+
+        #[test]
+        fn test_to_chrono_date() {
+            // 1980-01-01 - epoch
+            let ddate = DOSDate::new(1980, 1, 1).unwrap();
+            let ddate: NaiveDate = ddate.into();
+            let cdate = NaiveDate::from_ymd_opt(1980, 1, 1).unwrap();
+            assert_eq!(ddate, cdate);
+
+            // 2017-04-06
+            let ddate = DOSDate::new(2017, 4, 6).unwrap();
+            let ddate: NaiveDate = ddate.into();
+            let cdate = NaiveDate::from_ymd_opt(2017, 4, 6).unwrap();
+            assert_eq!(ddate, cdate);
+
+            // 2107-12-31 - last possible date
+            let ddate = DOSDate::new(2107, 12, 31).unwrap();
+            let ddate: NaiveDate = ddate.into();
+            let cdate = NaiveDate::from_ymd_opt(2107, 12, 31).unwrap();
+            assert_eq!(ddate, cdate);
+
+            // 2016-02-29 - leap year
+            let ddate = DOSDate::new(2016, 2, 29).unwrap();
+            let ddate: NaiveDate = ddate.into();
+            let cdate = NaiveDate::from_ymd_opt(2016, 2, 29).unwrap();
+            assert_eq!(ddate, cdate);
+
+            // 2000-02-29 - leap year, divisible by 400
+            let ddate = DOSDate::new(2000, 2, 29).unwrap();
+            let ddate: NaiveDate = ddate.into();
+            let cdate = NaiveDate::from_ymd_opt(2000, 2, 29).unwrap();
+            assert_eq!(ddate, cdate);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::traits::IntoBE;

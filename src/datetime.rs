@@ -361,6 +361,123 @@ mod time {
     }
 }
 
+#[cfg(feature = "chrono-1")]
+mod chrono {
+    use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+
+    use crate::{DOSDate, DOSTime};
+
+    use super::{DOSDateTime, DateTimeError};
+
+    impl From<DOSDateTime> for NaiveDateTime {
+        fn from(value: DOSDateTime) -> Self {
+            let date: NaiveDate = value.date.into();
+            let time: NaiveTime = value.time.into();
+
+            Self::new(date, time)
+        }
+    }
+
+    impl TryFrom<NaiveDateTime> for DOSDateTime {
+        type Error = DateTimeError;
+
+        fn try_from(value: NaiveDateTime) -> Result<Self, Self::Error> {
+            let date: DOSDate = match value.date().try_into() {
+                Err(err) => return Err(DateTimeError::DateError(err)),
+                Ok(date) => date,
+            };
+
+            let time: DOSTime = value.time().into();
+
+            Ok(DOSDateTime::from((date, time)))
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+
+        use crate::DOSDateTime;
+
+        #[test]
+        fn test_from_chrono_datetime() {
+            // Test valid datetimes
+            // 1980-01-01 00:00:00 - epoch
+            let ddatetime = DOSDateTime::new(1980, 1, 1, 0, 0, 0).unwrap();
+            let cdatetime = NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(1980, 1, 1).unwrap(),
+                NaiveTime::from_hms_opt(0, 0, 0).unwrap(),
+            );
+            let cdatetime: DOSDateTime = cdatetime.try_into().unwrap();
+            assert_eq!(ddatetime, cdatetime);
+
+            // 2017-04-06 13:24:54
+            let ddatetime = DOSDateTime::new(2017, 4, 6, 13, 24, 54).unwrap();
+            let cdatetime = NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(2017, 4, 6).unwrap(),
+                NaiveTime::from_hms_opt(13, 24, 54).unwrap(),
+            );
+            let cdatetime: DOSDateTime = cdatetime.try_into().unwrap();
+            assert_eq!(ddatetime, cdatetime);
+
+            // 2107-12-31 23:59:58 - last possible datetime
+            let ddatetime = DOSDateTime::new(2107, 12, 31, 23, 59, 58).unwrap();
+            let cdatetime = NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(2107, 12, 31).unwrap(),
+                NaiveTime::from_hms_opt(23, 59, 58).unwrap(),
+            );
+            let cdatetime: DOSDateTime = cdatetime.try_into().unwrap();
+            assert_eq!(ddatetime, cdatetime);
+
+            // Test invalid datetimes
+            // 1979-12-31 23:59:59 - too early
+            let tdatetime = NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(1979, 12, 31).unwrap(),
+                NaiveTime::from_hms_opt(23, 59, 59).unwrap(),
+            );
+            assert!(DOSDateTime::try_from(tdatetime).is_err());
+
+            // 2108-01-01 00:00:00- too late
+            let tdatetime = NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(2108, 1, 1).unwrap(),
+                NaiveTime::from_hms_opt(0, 0, 0).unwrap(),
+            );
+            assert!(DOSDateTime::try_from(tdatetime).is_err());
+        }
+
+        #[test]
+        fn test_to_chrono_datetime() {
+            // Test valid datetimes
+            // 1980-01-01 00:00:00 - epoch
+            let ddatetime = DOSDateTime::new(1980, 1, 1, 0, 0, 0).unwrap();
+            let ddatetime: NaiveDateTime = ddatetime.into();
+            let cdatetime = NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(1980, 1, 1).unwrap(),
+                NaiveTime::from_hms_opt(0, 0, 0).unwrap(),
+            );
+            assert_eq!(ddatetime, cdatetime);
+
+            // 2017-04-06 13:24:54
+            let ddatetime = DOSDateTime::new(2017, 4, 6, 13, 24, 54).unwrap();
+            let ddatetime: NaiveDateTime = ddatetime.into();
+            let cdatetime = NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(2017, 4, 6).unwrap(),
+                NaiveTime::from_hms_opt(13, 24, 54).unwrap(),
+            );
+            assert_eq!(ddatetime, cdatetime);
+
+            // 2107-12-31 23:59:58 - last possible datetime
+            let ddatetime = DOSDateTime::new(2107, 12, 31, 23, 59, 58).unwrap();
+            let ddatetime: NaiveDateTime = ddatetime.into();
+            let cdatetime = NaiveDateTime::new(
+                NaiveDate::from_ymd_opt(2107, 12, 31).unwrap(),
+                NaiveTime::from_hms_opt(23, 59, 58).unwrap(),
+            );
+            assert_eq!(ddatetime, cdatetime);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

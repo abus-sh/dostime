@@ -45,10 +45,10 @@ assert_eq!(time, DOSTime::try_from([0x1B, 0x6B]).unwrap());
 - `serde-1` - enables (de)serialization with Serde
 - `time-1` - enables conversion to/from types in the `time` crate (`Date`, `Time`, and
 `PrimitiveDateTime`)
+- `chrono-1` - enables conversion to/from types in the `chrono` crate (`NaiveDate`, `NaiveTime`, and
+`NaiveDateTime`)
 
 ## Future Work
-
-- Compatibility with the `chrono` crate.
 
 If anyone thinks of something else that this crate should have or spots any bugs, let me know! I'll
 see if I can add it. Alternatively, feel free to submit a pull request (or just fork it). I'll
