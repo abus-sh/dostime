@@ -78,13 +78,13 @@ impl DOSDate {
     /// let date2 = DOSDate::new(2000, 3, 4).unwrap();
     /// 
     /// // Invalid dates can't be constructed.
-    /// let bad_year = DOSDate::new(1979, 12, 1).expect_err("");
+    /// let bad_year = DOSDate::new(1979, 12, 1).unwrap_err();
     /// assert_eq!(bad_year, DateError::InvalidYear);
     /// 
-    /// let bad_month = DOSDate::new(2000, 13, 1).expect_err("");
+    /// let bad_month = DOSDate::new(2000, 13, 1).unwrap_err();
     /// assert_eq!(bad_month, DateError::InvalidMonth);
     /// 
-    /// let bad_day = DOSDate::new(2000, 11, 31).expect_err("");
+    /// let bad_day = DOSDate::new(2000, 11, 31).unwrap_err();
     /// assert_eq!(bad_day, DateError::InvalidDay);
     /// ```
     pub fn new(year: u16, month: u8, day: u8) -> Result<Self, DateError> {

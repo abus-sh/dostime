@@ -76,13 +76,13 @@ impl DOSTime {
     /// let time2 = DOSTime::new(15, 21, 19).unwrap();
     /// 
     /// // Invalid times can't be constructed.
-    /// let bad_hour = DOSTime::new(24, 12, 1).expect_err("");
+    /// let bad_hour = DOSTime::new(24, 12, 1).unwrap_err();
     /// assert_eq!(bad_hour, TimeError::InvalidHour);
     /// 
-    /// let bad_minute = DOSTime::new(18, 60, 3).expect_err("");
+    /// let bad_minute = DOSTime::new(18, 60, 3).unwrap_err();
     /// assert_eq!(bad_minute, TimeError::InvalidMinute);
     /// 
-    /// let bad_second = DOSTime::new(4, 11, 60).expect_err("");
+    /// let bad_second = DOSTime::new(4, 11, 60).unwrap_err();
     /// assert_eq!(bad_second, TimeError::InvalidSecond);
     /// ```
     pub fn new(hour: u8, minute: u8, second: u8) -> Result<Self, TimeError> {
