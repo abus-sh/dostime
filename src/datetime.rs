@@ -245,6 +245,122 @@ impl Display for DOSDateTime {
     }
 }
 
+#[cfg(feature = "time-1")]
+mod time {
+    use time::{Date, PrimitiveDateTime, Time};
+
+    use crate::{DOSDate, DOSTime};
+
+    use super::{DOSDateTime, DateTimeError};
+
+    impl From<DOSDateTime> for PrimitiveDateTime {
+        fn from(value: DOSDateTime) -> Self {
+            let date: Date = value.date.into();
+            let time: Time = value.time.into();
+
+            Self::new(date, time)
+        }
+    }
+
+    impl TryFrom<PrimitiveDateTime> for DOSDateTime {
+        type Error = DateTimeError;
+
+        fn try_from(value: PrimitiveDateTime) -> Result<Self, Self::Error> {
+            let date: DOSDate = match value.date().try_into() {
+                Err(err) => return Err(DateTimeError::DateError(err)),
+                Ok(date) => date,
+            };
+
+            let time: DOSTime = value.time().into();
+
+            Ok(DOSDateTime::from((date, time)))
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use time::{Date, Month, PrimitiveDateTime, Time};
+
+        use crate::DOSDateTime;
+
+        #[test]
+        fn test_from_time_datetime() {
+            // Test valid datetimes
+            // 1980-01-01 00:00:00 - epoch
+            let ddatetime = DOSDateTime::new(1980, 1, 1, 0, 0, 0).unwrap();
+            let tdatetime = PrimitiveDateTime::new(
+                Date::from_calendar_date(1980, Month::January, 1).unwrap(),
+                Time::from_hms(0, 0, 0).unwrap(),
+            );
+            let tdatetime: DOSDateTime = tdatetime.try_into().unwrap();
+            assert_eq!(ddatetime, tdatetime);
+
+            // 2017-04-06 13:24:54
+            let ddatetime = DOSDateTime::new(2017, 4, 6, 13, 24, 54).unwrap();
+            let tdatetime = PrimitiveDateTime::new(
+                Date::from_calendar_date(2017, Month::April, 6).unwrap(),
+                Time::from_hms(13, 24, 54).unwrap(),
+            );
+            let tdatetime: DOSDateTime = tdatetime.try_into().unwrap();
+            assert_eq!(ddatetime, tdatetime);
+
+            // 2107-12-31 23:59:58 - last possible datetime
+            let ddatetime = DOSDateTime::new(2107, 12, 31, 23, 59, 58).unwrap();
+            let tdatetime = PrimitiveDateTime::new(
+                Date::from_calendar_date(2107, Month::December, 31).unwrap(),
+                Time::from_hms(23, 59, 58).unwrap(),
+            );
+            let tdatetime: DOSDateTime = tdatetime.try_into().unwrap();
+            assert_eq!(ddatetime, tdatetime);
+
+            // Test invalid datetimes
+            // 1979-12-31 23:59:59 - too early
+            let tdatetime = PrimitiveDateTime::new(
+                Date::from_calendar_date(1979, Month::December, 31).unwrap(),
+                Time::from_hms(23, 59, 59).unwrap(),
+            );
+            assert!(DOSDateTime::try_from(tdatetime).is_err());
+
+            // 2108-01-01 00:00:00- too late
+            let tdatetime = PrimitiveDateTime::new(
+                Date::from_calendar_date(2108, Month::January, 1).unwrap(),
+                Time::from_hms(0, 0, 0).unwrap(),
+            );
+            assert!(DOSDateTime::try_from(tdatetime).is_err());
+        }
+
+        #[test]
+        fn test_to_time_datetime() {
+            // 1980-01-01 00:00:00 - epoch
+            let ddatetime = DOSDateTime::new(1980, 1, 1, 0, 0, 0).unwrap();
+            let ddatetime: PrimitiveDateTime = ddatetime.into();
+            let tdatetime = PrimitiveDateTime::new(
+                Date::from_calendar_date(1980, Month::January, 1).unwrap(),
+                Time::from_hms(0, 0, 0).unwrap(),
+            );
+            assert_eq!(ddatetime, tdatetime);
+
+            // 2017-04-06 13:24:54
+            let ddatetime = DOSDateTime::new(2017, 4, 6, 13, 24, 54).unwrap();
+            let ddatetime: PrimitiveDateTime = ddatetime.into();
+            let tdatetime = PrimitiveDateTime::new(
+                Date::from_calendar_date(2017, Month::April, 6).unwrap(),
+                Time::from_hms(13, 24, 54).unwrap(),
+            );
+            assert_eq!(ddatetime, tdatetime);
+
+            // 2107-12-31 23:59:58 - last possible datetime
+            let ddatetime = DOSDateTime::new(2107, 12, 31, 23, 59, 58).unwrap();
+            let ddatetime: PrimitiveDateTime = ddatetime.into();
+            let tdatetime = PrimitiveDateTime::new(
+                Date::from_calendar_date(2107, Month::December, 31).unwrap(),
+                Time::from_hms(23, 59, 58).unwrap(),
+            );
+            assert_eq!(ddatetime, tdatetime);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
