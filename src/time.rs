@@ -262,9 +262,8 @@ impl From<DOSTime> for [u8; 2] {
     }
 }
 
-#[cfg(feature = "std")]
 impl Display for DOSTime {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:0>2}:{:0>2}:{:0>2}", self.hour, self.minute, self.second)
     }
 }

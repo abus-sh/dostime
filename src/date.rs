@@ -309,9 +309,8 @@ impl Default for DOSDate {
     }
 }
 
-#[cfg(feature = "std")]
 impl Display for DOSDate {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:0>4}-{:0>2}-{:0>2}", self.year, self.month, self.day)
     }
 }
