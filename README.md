@@ -3,6 +3,8 @@
 This crate converts MS DOS times to and from various formats, including integers, byte arrays, and
 types in external crates (see the features for more information).
 
+This crate is `no_std` compatible.
+
 An explanation of the date and time formats can be found
 [here](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-dosdatetimetofiletime),
 though the documentation for `DOSTime` and `DOSDate` also includes explantions for the format.
@@ -41,7 +43,6 @@ assert_eq!(time, DOSTime::try_from([0x1B, 0x6B]).unwrap());
 
 ## Features
 
-- `std` (default) - enables features that rely on the standard library
 - `serde-1` - enables (de)serialization with Serde
 - `time-1` - enables conversion to/from types in the `time` crate (`Date`, `Time`, and
 `PrimitiveDateTime`)

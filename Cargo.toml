@@ -16,8 +16,6 @@ time = { version = "0.3", optional = true, default-features = false }
 chrono = { version = "0.4", optional = true, default-features = false }
 
 [features]
-default = ["std"]
-std = []
 serde-1 = ["serde", "serde_derive"]
 time-1 = ["time"]
 chrono-1 = ["chrono"]

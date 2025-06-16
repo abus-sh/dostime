@@ -1,6 +1,6 @@
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
 //! This crate converts MS DOS times to and from various formats, including integers, byte arrays, and
 //! types in external crates (see the features for more information).
@@ -43,7 +43,6 @@
 //! 
 //! # Features
 //! 
-//! - `std` (default) - enables features that rely on the standard library
 //! - `serde-1` - enables (de)serialization with Serde
 //! - `time-1` - enables conversion to/from types in the `time` crate (`Date`, `Time`, and
 //! `PrimitiveDateTime`)
